@@ -2,6 +2,7 @@
 #define _FRACTAL_H
 
 struct fractal {
+    char *name;
     int width;
     int height;
     double a;
@@ -12,13 +13,14 @@ struct fractal {
 /*
  * fractal_new: alloue une nouvelle structure fractal
  *
+ * @name: nom de la fractale
  * @width: largeur de l'image finale
  * @height: hauteur de l'image finale
  * @a: partie réelle des coordonnées de la fractale
  * @b: partie imaginaire des coordonnées de la fractale
  * @return: un pointeur vers une struct fractal, ou NULL si erreur
  */
-struct fractal *fractal_new(int width, int height, double a, double b);
+struct fractal *fractal_new(const char *name, int width, int height, double a, double b);
 
 /*
  * fractal_free: libère la mémoire utilisée par une struct fractal

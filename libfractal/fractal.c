@@ -1,25 +1,30 @@
 #include <stdlib.h>
+#include <string.h>
 #include "fractal.h"
 
-struct fractal *fractal_new(int width, int height, double a, double b)
+struct fractal *fractal_new(const char *name, int width, int height, double a, double b)
 {
     struct fractal * new = malloc(sizeof(struct fractal));
+    char * n = malloc(strlen(name)+1);
+    strcpy(n, name);
+    new->name = n;
     new->width = width;
     new->height = height;
     new->a = a;
     new->b = b;
     new->val = malloc(width*height*sizeof(int));
     int x, y;
-    for (size_t i = 0; i < (size_t)width*height; i++) {
-        x = i / width;
-        y = i % width;
-        fractal_compute_value(new, x, y);
+    for (x = 0; x < width; x++) {
+        for (y = 0; y < height; y++) {
+            fractal_compute_value(new, x, y);
+        }
     }
     return new;
 }
 
 void fractal_free(struct fractal *f)
 {
+    free(f->name);
     free(f->val);
     free(f);
 }
@@ -27,7 +32,7 @@ void fractal_free(struct fractal *f)
 int fractal_get_value(const struct fractal *f, int x, int y)
 {
     int index = fractal_get_width(f)*x + y;
-    return *(f->val)+index;
+    return *((f->val)+index);
 }
 
 void fractal_set_value(struct fractal *f, int x, int y, int val)

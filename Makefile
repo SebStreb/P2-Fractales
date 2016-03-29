@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -W
+CFLAGS = -g -Wall -W
 LDFLAGS = -lm -L/usr/local/lib -lSDL
 
 all: fractal
