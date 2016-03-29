@@ -13,7 +13,7 @@ Faire un bon makefile !
 */
 
 int main(int argc, char const *argv[]) {
-    struct fractal * f = fractal_new("test1", 200, 100, 0.1, 0.2);
-    printf("%i\n", fractal_get_value(f, 50, 50));
+    struct fractal * f = fractal_new("test1", 100, 30, 0.5, 0.4);
+    printf("%i\n", fractal_get_value(f, 50, 10));
     return 0;
 }

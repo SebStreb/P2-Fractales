@@ -1,10 +1,10 @@
 CC = gcc
-CFLAGS = -g -Wall -W
-LDFLAGS = -lm -L/usr/local/lib -lSDL
+CFLAGS = -g -Wall -W -I$(HOME)/local/include
+LDFLAGS = -lm -L/usr/local/lib -lSDL2 -L$(HOME)/local/lib -lcunit
 
 all: fractal
 
-launch: main
+launch: fractal
 	@echo 'Launching program'
 	@./fractal
 
@@ -18,15 +18,15 @@ fractal: main.o lib
 
 main.o: main.c
 	@echo 'Building main'
-	@$(CC) -c -o main.o main.c $(FLAGS)
+	@$(CC) -c -o main.o main.c $(CFLAGS)
 
 tests: test/tests.o lib
 	@echo 'Making tests'
-	@$(CC) -o tests test/tests.o libfractal/libfractal.a $(FLAGS) $(LDFLAGS)
+	@$(CC) -o tests test/tests.o libfractal/libfractal.a $(CFLAGS) $(LDFLAGS)
 
 test/tests.o: test/tests.c
 	@echo 'Building tests'
-	@$(CC) -c -o test/tests.o test/tests.c $(FLAGS)
+	@$(CC) -c -o test/tests.o test/tests.c $(CFLAGS)
 
 lib:
 	@echo 'Building lib'

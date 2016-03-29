@@ -8,6 +8,7 @@ struct fractal {
     double a;
     double b;
     int* val;
+    double average;
 };
 
 /*
