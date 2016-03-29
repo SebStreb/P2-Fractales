@@ -14,7 +14,7 @@ testing: tests
 
 fractal: main.o lib
 	@echo 'Making exec'
-	@$(CC) -o fractal main.o libfractal/libfractal.a $(FLAGS) $(LDFLAGS)
+	@$(CC) -o fractal main.o libfractal/libfractal.a $(CFLAGS) $(LDFLAGS)
 
 main.o: main.c
 	@echo 'Building main'

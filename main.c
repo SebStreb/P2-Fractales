@@ -22,7 +22,7 @@ int main(int argc, char const *argv[]) {
 	}
 	int nbrArg=1;//On commence à lire les arguments
 	char const *arg=argv[nbrArg];
-	
+
 	if(strcmp(arg, "-d")==0){//Si on trouve le -d, mettre le flag à 1
 		flagDetail=1;
 		printf("Option -d\n");
@@ -41,23 +41,23 @@ int main(int argc, char const *argv[]) {
 
 	while(nbrArg<argc-1){//Tant qu'on a des arguments à lire (ici, ce sont des fichiers + s'arrêter un avant la fin pour l'output)
 		char const* fichier=argv[nbrArg];
-		if(strcmp(fichier, "-")==0){//Sous ubuntu, fgets semble boucler infiniment...
+		if(strcmp(fichier, "-")==0){
 			int stop=0;
-			while(stop!=1){
-			char saisie[50];
-			printf("Entrez une fractale (Nom hauteur largeur a b) : ");
-			fgets (saisie, sizeof(saisie), stdin);
-			printf("%s", saisie);//Compute ici
-			printf("Voulez-vous entrer une autre fractale ? (o/n)");
-			fflush (stdout);
-			char rep[2];
-			fgets(rep, sizeof(rep), stdin);
-			int res = strcmp(rep, "n");
-			printf("%i\n", res);
-			if(res==0){
-				stop=1;
+			while(stop != 1) {
+				char saisie[50];
+				printf("Entrez une fractale (Nom hauteur largeur a b) : \n");
+				fgets (saisie, sizeof(saisie), stdin);
+				saisie[strlen(saisie)-1] = '\0';
+				printf("Voulez-vous entrer une autre fractale ? (o/n)\n");
+				char rep[10];
+				fgets(rep, sizeof(rep), stdin);
+				rep[strlen(rep)-1] = '\0';
+				int res = strcmp(rep, "n");
+				if(res==0) {
+					stop=1;
+				}
 			}
-			} 
+			nbrArg++;
 		}
 		else{
 			FILE* toRead=NULL;
