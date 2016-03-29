@@ -13,56 +13,76 @@ Dans la structure fractale, rajouter un int moyenne, où sera directement stock�
 Faire un bon makefile !
 */
 int flagDetail;
+int maxThreads;
 
 int main(int argc, char const *argv[]) {
-	if(argc <2){
+	if(argc < 3){//Il faut au moins 3 arguments (le nom de base, un fichier d'entrée et un de sortie)
 		fprintf(stderr, "Il n'y a pas assez d'arguments donnés, il faut au moins stipuler un fichier d'où tirer les données des fractales !");
 		exit(EXIT_FAILURE);
 	}
-	int nbrArg=1;
+	int nbrArg=1;//On commence à lire les arguments
 	char const *arg=argv[nbrArg];
 	
-	if(strcmp(arg, "-d")==0){
+	if(strcmp(arg, "-d")==0){//Si on trouve le -d, mettre le flag à 1
 		flagDetail=1;
 		printf("Option -d\n");
-		nbrArg++;
+		nbrArg++;//Un argument de lu, passons au suivant
 	}
 	else{
 		flagDetail=0;
 	}
 	arg=argv[nbrArg];
-	char* code = strstr(arg, "--");
+	char* code = strstr(arg, "--");//Si on trouve les deux tirets, c'est maxThreads
 	if(code!=NULL){
-		int nbr=atoi(code+2);
-		printf("Nombre : %i\n", nbr);
-		nbrArg++;
+		int nbr=atoi(code+2);//Récupérer le nombre
+		maxThreads=nbr;//Le stocker
+		nbrArg++;//Passer à l'argument suivant
 	}
 
-	while(nbrArg<argc-1){//Tant qu'on a des arguments à lire (ici, ce sont des fichiers + s'arrêter un avant la fin pour l'outpput)
+	while(nbrArg<argc-1){//Tant qu'on a des arguments à lire (ici, ce sont des fichiers + s'arrêter un avant la fin pour l'output)
 		char const* fichier=argv[nbrArg];
-		//TODO : le cas où c'est un "-" pour dire qu'on veut la sortie au clavier
-		FILE* toRead=NULL;
-		toRead=fopen(fichier, "r");
-		if(toRead != NULL){
-			printf("fichier ouvert\n");
-			int comm =fgetc(toRead);
-			if(comm=='#'){//On regarde si ce n'est pas une ligne en commentaire
-				//Passer à la ligne suivante si c'est le cas
+		if(strcmp(fichier, "-")==0){//Sous ubuntu, fgets semble boucler infiniment...
+			int stop=0;
+			while(stop!=1){
+			char saisie[50];
+			printf("Entrez une fractale (Nom hauteur largeur a b) : ");
+			fgets (saisie, sizeof(saisie), stdin);
+			printf("%s", saisie);//Compute ici
+			printf("Voulez-vous entrer une autre fractale ? (o/n)");
+			fflush (stdout);
+			char rep[2];
+			fgets(rep, sizeof(rep), stdin);
+			int res = strcmp(rep, "n");
+			printf("%i\n", res);
+			if(res==0){
+				stop=1;
 			}
-			else{//Sinon, on lit
-				fseek(toRead, -1, SEEK_CUR);
-				char chaine[30]="";
-				printf("Avant le while\n");
-				while (fgets(chaine, 30, toRead) != NULL){ // On lit le fichier tant qu'on ne reçoit pas d'erreur (NULL)
-					printf("%s\n", chaine);
-				}
-			}
-			fclose(toRead);//Fermer le fichier
+			} 
 		}
 		else{
-			fprintf(stderr, "Impossible de lire le fichier %s, il a été ignoré\n", fichier);
+			FILE* toRead=NULL;
+			toRead=fopen(fichier, "r");
+			if(toRead != NULL){
+				printf("fichier ouvert\n");
+				int comm =fgetc(toRead);
+				if(comm=='#'){//On regarde si ce n'est pas une ligne en commentaire
+					//Passer à la ligne suivante si c'est le cas
+				}
+				else{//Sinon, on lit
+					fseek(toRead, -1, SEEK_CUR);
+					char chaine[30]="";
+					printf("Avant le while\n");
+					while (fgets(chaine, 30, toRead) != NULL){ // On lit le fichier tant qu'on ne reçoit pas d'erreur (NULL)
+						printf("%s\n", chaine);
+					}
+				}
+				fclose(toRead);//Fermer le fichier
+			}
+			else{
+				fprintf(stderr, "Impossible de lire le fichier %s, il a été ignoré\n", fichier);
+			}
+			nbrArg++;
 		}
-		nbrArg++;
 	}
     return 0;
 }
