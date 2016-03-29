@@ -9,8 +9,11 @@ struct fractal *fractal_new(int width, int height, double a, double b)
     new->a = a;
     new->b = b;
     new->val = malloc(width*height*sizeof(int));
+    int x, y;
     for (size_t i = 0; i < (size_t)width*height; i++) {
-        fractal_compute_value(new, width, height);
+        x = i / width;
+        y = i % width;
+        fractal_compute_value(new, x, y);
     }
     return new;
 }
