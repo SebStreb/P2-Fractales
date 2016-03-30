@@ -14,7 +14,7 @@ bonnes au fur et à mesure, afin de sortir le bon fichier bmp (si l'option -d es
 Dans la structure fractale, rajouter un int moyenne, où sera directement stockée la moyenne (elle est donc calculée dans lee thread qui rempli la fractale)
 Faire un bon makefile !
 */
-	
+
 #define N 100                   // taille des buffer
 static pthread_mutex_t mutex1;  // mutex du buffer lecture - calcul
 static sem_t empty1;            // si > 0 alors il y a des places libres dans le buffer1
@@ -29,16 +29,16 @@ int nbrArg=1; //Lecture des arguments
 void initFirst(){
 	int err=pthread_mutex_init( &mutex1, NULL);
 	if(err!=0)
-		fprintf(stderr,"pthread_mutex_init");
+		fprintf(stderr,"ERREUR : pthread_mutex_init\n");
 
 	int ret1 = sem_init(&empty1, 0, N);
 	if(ret1!=0){
-		fprintf(stderr, "Création de empty1");
+		fprintf(stderr, "ERREUR : Création de empty1\n");
 	}
 
 	int ret2 = sem_init(&full1, 0, 0);
 	if(ret2!=0){
-		fprintf(stderr, "Création de full1");
+		fprintf(stderr, "ERREUR : Création de full1\n");
 	}
 }
 struct fractal* compute(char* str){
@@ -50,7 +50,7 @@ struct fractal* compute(char* str){
 	double *b = (double*) str;
 	struct fractal *result = fractal_new(name, width, height, *a, *b);
 	return result;
-	
+
 }
 
 void insert(struct fractal *fract){
@@ -65,35 +65,31 @@ void insert(struct fractal *fract){
 void * producer(void *arg){
 	char * fichier = (char*) arg;
 	printf("Hello ! I'm a producer ! My file is : %s\n", fichier);
-	fflush(stdout);
-		FILE* toRead=NULL;
-		toRead=fopen(fichier, "r");
-		if(toRead != NULL){
-			printf("fichier ouvert\n");
-			int comm=fgetc(toRead);
-			if(comm=='#'){//On regarde si ce n'est pas une ligne en commentaire
-				char chaine[50]="";
-				fgets(chaine, 50, toRead);//Passer à la ligne suivante si c'est le cas
-			}
-			else{//Sinon, on lit
-				fseek(toRead, -1, SEEK_CUR);//Ne pas oublier de reculer pour ne pas perdre le premier caractère
-				char chaine[50]="";
-				while (fgets(chaine, 50, toRead) != NULL){ // On lit le fichier tant qu'on ne reçoit pas d'erreur (NULL)
-					chaine[strlen(chaine)-1] = '\0';
-					struct fractal *toAdd=compute(chaine);
-					insert(toAdd);
-				}
-			}
-			fclose(toRead);//Fermer le fichier
-			if(strcmp(fichier, "stdin.txt")==0){//Si c'est le fichier tampon où l'utilisateur a entré ses données, le supprimer
-				remove(fichier);
+	FILE* toRead=NULL;
+	toRead=fopen(fichier, "r");
+	if(toRead != NULL){
+		printf("fichier ouvert\n");
+		char chaine[50]="";
+		while (fgets(chaine, 50, toRead) != NULL){ // On lit le fichier tant qu'on ne reçoit pas d'erreur (NULL)
+			chaine[strlen(chaine)-1] = '\0';
+			char comm = *chaine;
+			if(comm!='#') { //On regarde si ce n'est pas une ligne en commentaire
+				struct fractal *toAdd=compute(chaine);
+				insert(toAdd);
 			}
 		}
-		else{
-			fprintf(stderr, "Impossible de lire le fichier %s, il a été ignoré\n", fichier);
+		fclose(toRead);//Fermer le fichier
+		printf("fichier fermé\n");
+		if(strcmp(fichier, "stdin.txt")==0){//Si c'est le fichier tampon où l'utilisateur a entré ses données, le supprimer
+			printf("Suppression de stdin.txt\n");
+			remove(fichier);
 		}
-		return NULL;//pthread_create veut absolument un return
 	}
+	else{
+		fprintf(stderr, "Impossible de lire le fichier %s, il a été ignoré\n", fichier);
+	}
+	pthread_exit(NULL);//pthread_create veut absolument un return
+}
 
 
 int main(int argc, char const *argv[]) {
@@ -123,22 +119,24 @@ int main(int argc, char const *argv[]) {
 			printf("Option -d\n");
 			nbrArg++;
 		}
+	} else {
+		maxThreads = 10;
 	}
-	
+
 	initFirst();
 
+	pthread_t threads[maxThreads];
+	int nthread = 0;
 	while(nbrArg<argc-1){//Tant qu'on a des arguments à lire (ici, ce sont des fichiers + s'arrêter un avant la fin pour l'output)
 		char* fichier=argv[nbrArg];
 		printf("Argument lu : %s\n", fichier);
-		fflush(stdout);
 		if(strcmp(fichier, "-")==0){
 			FILE* std = NULL;
-			std = fopen("stdin.txt", "w+");//Créons un fichier tampon où stocker les entrées au clavier (w+ efface l'éventuel contenu, pour s'assurer qu'il est vide au départ)
+			std = fopen("stdin.txt", "w");//Créons un fichier tampon où stocker les entrées au clavier (w efface l'éventuel contenu, pour s'assurer qu'il est vide au départ)
 			int stop=0;
 			while(stop != 1) {
 				char saisie[50];
 				printf("Entrez une fractale (Nom hauteur largeur a b) : \n");
-				fflush(stdout);
 				fgets (saisie, sizeof(saisie), stdin);//On ne modifie pas car on veut le retour à la ligne
 				fputs(saisie, std);
 				printf("Voulez-vous entrer une autre fractale ? (o/n)\n");
@@ -152,17 +150,22 @@ int main(int argc, char const *argv[]) {
 			}
 			fclose(std);
 			fichier="stdin.txt";
-			nbrArg++;
 		}
-		pthread_t th;
+		pthread_t th = NULL;
+		threads[nthread] = th;
+		nthread++;
 		printf("Lancement du thread, fichier : %s\n", fichier);
-		fflush(stdout);
 		int res = pthread_create(&th,NULL, *producer,(void *)fichier);
-		if(res!=0){
+		if(res!=0)
 			printf("Problème de producteur\n");
-			fflush(stdout);
-		}
 		nbrArg++;
-		}
+	}
+	while (1) {
+		//DEBUG
+	}
+	void * ret;
+	for (int i = 0; i < nthread; i++) {
+		pthread_join(threads[i], &ret);
+	}
     return 0;
 }
