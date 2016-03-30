@@ -1,7 +1,6 @@
 CC = gcc
 CFLAGS = -g -Wall -W -I$(HOME)/local/include
-LDFLAGS = -lm -L/usr/local/lib -lSDL2 -L$(HOME)/local/lib -lcunit
-
+LDFLAGS = -lm -L/usr/local/lib -lSDL2 -L$(HOME)/local/lib -lcunit -pthread
 all: fractal
 
 launch: fractal

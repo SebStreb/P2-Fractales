@@ -12,13 +12,13 @@ struct fractal *fractal_new(const char *name, int width, int height, double a, d
     new->height = height;
     new->a = a;
     new->b = b;
-    new->val = malloc(width*height*sizeof(int));
-    int x, y;
+    new->val = calloc(width*height, sizeof(int));//Calloc pour être sûr d'avoir 0
+    /*int x, y;
     for (x = 0; x < width; x++) {
         for (y = 0; y < height; y++) {
             fractal_compute_value(new, x, y);
         }
-    }
+    } Job du thread de calcul*/
     return new;
 }
 
