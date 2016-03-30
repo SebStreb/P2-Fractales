@@ -22,6 +22,10 @@ struct fractal {
  * @return: un pointeur vers une struct fractal, ou NULL si erreur
  */
 struct fractal *fractal_new(const char *name, int width, int height, double a, double b);
+/*
+*TODO
+*/
+struct fractal fractal_fill(struct fractal* f);
 
 /*
  * fractal_free: libère la mémoire utilisée par une struct fractal
