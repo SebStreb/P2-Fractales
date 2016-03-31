@@ -45,6 +45,11 @@ void fractal_free(struct fractal *f);
 int fractal_get_value(const struct fractal *f, int x, int y);
 
 /*
+*TODO
+*/
+char* fractal_get_name(const struct fractal *f);
+
+/*
  * fractal_set_value: défini la valeur correspondant à un pixel de l'image
  *
  * @f: fractale
@@ -86,6 +91,16 @@ double fractal_get_a(const struct fractal *f);
  */
 double fractal_get_b(const struct fractal *f);
 
+/*
+*TODO
+*/
+ double fractal_get_av(const struct fractal *f);
+ 
+/*
+*TODO
+*/
+ void fractal_set_av(struct fractal *f, double value);
+ 
 /*
  * fractal_compute_value
  *

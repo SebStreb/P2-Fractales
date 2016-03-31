@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "libfractal/fractal.h"
+#include "stack.c"
 
 /**TODO Architecture :
 Autant de thread "producteurs" que de fichiers d'entrées, qui lisent les entrée, créent des struct fractales et les stockent dans un buffer protégé par un sémaphore.
@@ -19,9 +20,7 @@ Faire un bon makefile !
 static pthread_mutex_t mutex1;  // mutex du buffer lecture - calcul
 static sem_t empty1;            // si > 0 alors il y a des places libres dans le buffer1
 static sem_t full1;             // si > 0 alors il y a des données dans le buffer1
-struct fractal buffer[N];
-int firstEmpty;
-int firstFull;
+node * buffer1;
 int flagDetail;
 int maxThreads;
 int nbrArg=1; //Lecture des arguments
@@ -40,11 +39,11 @@ void initFirst(){
 	if(ret2!=0){
 		fprintf(stderr, "ERREUR : Création de full1\n");
 	}
-	firstEmpty=0;
-	firstFull=-1;
 }
+
 struct fractal* compute(char* str){
 	const char *delim = " ";
+	printf("Chaine reçue : %s\n", str);
 	char* name = strsep(&str, delim);
 	if(str==NULL){//Si à ce point str vaut NULL, c'est que la chaine ne contenait que le nom
 		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
@@ -60,26 +59,29 @@ struct fractal* compute(char* str){
 		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
 		return NULL;
 	}
-	double *a = (double*) strsep(&str, delim);
-	if(str==NULL){//Il manque un argument
+	char * temp =strsep(&str, delim);
+	double a = strtod(temp, NULL);
+	if(str==NULL || a>1.0 || a<-1.0){//Il manque un argument ou a n'est pas dans les bonnes bornes
 		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
 		return NULL;
 	}
-	double *b = (double*) str;
-	struct fractal *result = fractal_new(name, width, height, *a, *b);
+	double b = strtod(str, NULL);
+	if(b>1.0 || b<-1.0){//b n'est pas dans les bonnes bornes
+		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
+		return NULL;
+	}
+	printf("Envoyé : name = %s, height = %i, width = %i, a = %f, b = %f\n", name, height, width, a, b);
+	struct fractal *result = fractal_new(name, width, height, a, b);
+	printf("%s\n", fractal_get_name(result));
 	return result;
-
 }
 
 void insert(struct fractal *fract){
+	printf("Reçu : %s\n", fractal_get_name(fract));
 	sem_wait(&empty1);
-	printf("Sem_wait passé\n");
     pthread_mutex_lock(&mutex1);
-    printf("Lock\n");
-    buffer[firstEmpty]=*fract;
-    firstFull=firstEmpty;
-		firstEmpty++;
-    printf("Inséré ! firstFull = %i, firstEmpty=%i\n", firstFull, firstEmpty);
+    int res = push(&buffer1, *fract);
+    printf("Fractale ajoutée (%i))\n", res);
     pthread_mutex_unlock(&mutex1);
     sem_post(&full1);
 }
@@ -100,7 +102,6 @@ void * producer(void *arg){
 				printf("Chaine : %s\n", chaine);
 				struct fractal *toAdd=compute(chaine);
 				if(toAdd!=NULL)
-					printf("Avant insersion\n");
 					insert(toAdd);
 			}
 		}
@@ -114,6 +115,8 @@ void * producer(void *arg){
 	else{
 		fprintf(stderr, "Impossible de lire le fichier %s, il a été ignoré\n", fichier);
 	}
+	printf("Fin d'un producer\n");
+	fflush(stdout);
 	pthread_exit(NULL);//pthread_create veut absolument un return
 }
 
@@ -121,16 +124,17 @@ void * consumer(){
 	while(1){
 	 sem_wait(&full1); // attente d'un slot rempli 
 	 pthread_mutex_lock(&mutex1);
-	 printf("Consommateur consomme firsFull : %i, firstEmpty : %i\n", firstFull, firstEmpty);
-	 struct fractal toFill=buffer[firstFull];
+	 printf("Consommateur consomme !\n");
+	 struct fractal toFill=pop(&buffer1);
+	 printf("Accès à la fractale réussi\n");
 	 toFill=fractal_fill(&toFill);
+	 printf("Fractale remplie\n");
+	 write_bitmap_sdl(&toFill, strcat(fractal_get_name(&toFill), ".bmp"));
 	 //Mettre la fract sur le deuxième buffer
-	 firstEmpty=firstFull;
-	 firstFull--;
-	 printf("firsFull : %i, firstEmpty : %i\n", firstFull, firstEmpty);
 	 pthread_mutex_unlock(&mutex1);
 	 sem_post(&empty1); // il y a un slot libre en plus
  }
+	 printf("Fin du consommateur !\n");
 	 pthread_exit(NULL);//pthread_create veut absolument un return
  }
 
@@ -194,7 +198,6 @@ int main(int argc, char const *argv[]) {
 		pthread_t th = NULL;
 		threads[nthread] = th;
 		nthread++;
-		printf("Lancement du thread, fichier : %s\n", fichier);
 		int res = pthread_create(&th,NULL, *producer,(void *)fichier);
 		if(res!=0)
 			printf("Problème de producteur\n");
@@ -204,9 +207,11 @@ int main(int argc, char const *argv[]) {
 	pthread_t threadsC[maxThreads];
 	int i;
 	printf("Avant le for des consumer\n");
-	for(i=0; i<maxThreads; i++){
-		int res = pthread_create(&threadsC[i],NULL, *consumer,NULL);
-		if(res!=0)
+	for(i = 0; i < maxThreads; i++){
+		pthread_t th = NULL;
+		threadsC[i] = th;
+		int res = pthread_create(&th, NULL, *consumer, NULL);
+		if (res != 0)
 			printf("Problème de consommateur\n");
 	}
 	while (1) {
