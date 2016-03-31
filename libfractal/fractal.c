@@ -19,16 +19,13 @@ struct fractal *fractal_new(const char *name, int width, int height, double a, d
 }
 
 struct fractal fractal_fill(struct fractal* f){
-	printf("Dans la méthode fill\n");
 	fflush(stdout);
     int x, y;
     long sum=0;
     double count = 0.0;
-    printf("Remplissage de la fractale !\n");
     fflush(stdout);
     for (x = 0; x < fractal_get_width(f); x++) {
         for (y = 0; y < fractal_get_height(f); y++) {
-			//printf("Tour de for ! x = %i et y = %i\n", x, y);
 			fflush(stdout);
             fractal_compute_value(f, x, y);
             sum=sum+fractal_get_value(f, x, y);
@@ -36,7 +33,7 @@ struct fractal fractal_fill(struct fractal* f){
         }
     }
     double av = sum/count;
-    printf("Sum = %i, count = %f et av = %f\n", sum, count, av);
+    printf("Moyenne de %s = %f\n", fractal_get_name(f), av);
     fractal_set_av(f, av);
     return *f;
 }

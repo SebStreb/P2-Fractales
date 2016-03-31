@@ -16,11 +16,16 @@ Dans la structure fractale, rajouter un int moyenne, où sera directement stock�
 Faire un bon makefile !
 */
 
-#define N 100                   // taille des buffer
-static pthread_mutex_t mutex1;  // mutex du buffer lecture - calcul
-static sem_t empty1;            // si > 0 alors il y a des places libres dans le buffer1
-static sem_t full1;             // si > 0 alors il y a des données dans le buffer1
-node * buffer1;
+#define N 100// taille max des buffers (plus forcément utile avec les stacks
+static pthread_mutex_t mutex1;// mutex du buffer lecture - calcul
+static sem_t empty1;// si > 0 alors il y a des places libres dans le buffer1
+static sem_t full1;// si > 0 alors il y a des données dans le buffer1
+node * buffer1;//Buffer pour les fractales "vides"
+static pthread_mutex_t mutex2;//Mutex du buffer calcul - moyenne
+static sem_t empty2;
+static sem_t full2;
+node * buffer2;//Buffer pour les fractales calculées et la moyenne
+struct fractal *bestAv;//Variable où stocker la meilleure fractale
 int flagDetail;
 int maxThreads;
 int nbrArg=1; //Lecture des arguments
@@ -28,22 +33,38 @@ int nbrArg=1; //Lecture des arguments
 void initFirst(){
 	int err=pthread_mutex_init( &mutex1, NULL);
 	if(err!=0)
-		fprintf(stderr,"ERREUR : pthread_mutex_init\n");
+		fprintf(stderr,"ERREUR : pthread_mutex_init (premier buffer)\n");
 
 	int ret1 = sem_init(&empty1, 0, N);
 	if(ret1!=0){
-		fprintf(stderr, "ERREUR : Création de empty1\n");
+		fprintf(stderr, "ERREUR : Création de empty1 (premier buffer)\n");
 	}
 
 	int ret2 = sem_init(&full1, 0, 0);
 	if(ret2!=0){
-		fprintf(stderr, "ERREUR : Création de full1\n");
+		fprintf(stderr, "ERREUR : Création de full1 (premier buffer)\n");
 	}
+}
+
+void initSecond(){
+	int err=pthread_mutex_init(&mutex2, NULL);
+	if(err!=0)
+		fprintf(stderr,"ERREUR : pthread_mutex_init (second buffer)\n");
+
+	int ret1 = sem_init(&empty2, 0, N);
+	if(ret1!=0){
+		fprintf(stderr, "ERREUR : Création de empty2 (second buffer)\n");
+	}
+
+	int ret2 = sem_init(&full2, 0, 0);
+	if(ret2!=0){
+		fprintf(stderr, "ERREUR : Création de full2 (second buffer)\n");
+	}
+	bestAv=fractal_new("empty", 1, 1, 0.0, 0.0);
 }
 
 struct fractal* compute(char* str){
 	const char *delim = " ";
-	printf("Chaine reçue : %s\n", str);
 	char* name = strsep(&str, delim);
 	if(str==NULL){//Si à ce point str vaut NULL, c'est que la chaine ne contenait que le nom
 		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
@@ -72,7 +93,6 @@ struct fractal* compute(char* str){
 	}
 	printf("Envoyé : name = %s, height = %i, width = %i, a = %f, b = %f\n", name, height, width, a, b);
 	struct fractal *result = fractal_new(name, width, height, a, b);
-	printf("%s\n", fractal_get_name(result));
 	return result;
 }
 
@@ -81,6 +101,8 @@ void insert(struct fractal *fract){
 	sem_wait(&empty1);
     pthread_mutex_lock(&mutex1);
     int res = push(&buffer1, *fract);
+    if(res != 0)
+		printf("Impossible d'ajouter la fractale au buffer1\n");
     printf("Fractale ajoutée (%i))\n", res);
     pthread_mutex_unlock(&mutex1);
     sem_post(&full1);
@@ -126,16 +148,40 @@ void * consumer(){
 	 pthread_mutex_lock(&mutex1);
 	 printf("Consommateur consomme !\n");
 	 struct fractal toFill=pop(&buffer1);
-	 printf("Accès à la fractale réussi\n");
 	 toFill=fractal_fill(&toFill);
 	 printf("Fractale remplie\n");
-	 write_bitmap_sdl(&toFill, strcat(fractal_get_name(&toFill), ".bmp"));
-	 //Mettre la fract sur le deuxième buffer
 	 pthread_mutex_unlock(&mutex1);
 	 sem_post(&empty1); // il y a un slot libre en plus
+	 if(flagDetail){
+		write_bitmap_sdl(&toFill, strcat(fractal_get_name(&toFill), ".bmp"));
+	}
+	else{
+		sem_wait(&empty2);//On attend une place sur le buffer2
+		pthread_mutex_lock(&mutex2);//Quand on l'a, on lock
+		int res=push(&buffer2, toFill);//On met la fractale dans le buffer2
+		if(rest != 0)
+			printf("Impossible d'ajouter la fractale au buffer2\n");
+		pthread_mutex_unlock(&mutex2);//On delock
+		sem_post(&full2);//On signale qu'une valeur est présente
+	}
  }
-	 printf("Fin du consommateur !\n");
 	 pthread_exit(NULL);//pthread_create veut absolument un return
+ }
+ 
+ void * average(){
+	 while(1){
+		 sem_wait(&full2);//On attend qu'il y ait quelque chose dans le buffer
+		 pthread_mutex_lock(&mutex2);//On lock
+		 struct fractal test = pop(&buffer2);//On prend la fractale;
+		 printf("Test de moyenne ! Fractale précédente (%s) : %f, fractale actuelle (%s) : %f\n", fractal_get_name(bestAv), fractal_get_av(bestAv), fractal_get_name(&test), fractal_get_av(&test));
+		 if(fractal_get_av(&test)>fractal_get_av(bestAv)){//Si la fractale est meilleure que celle précédement en mémoire
+			 printf("Fractale update !\n");
+			 fractal_free(bestAv);
+			 bestAv=&test;//Free bestAv avant ?
+		 }
+		 pthread_mutex_unlock(&mutex2);
+		 sem_post(&empty2);
+	 }
  }
 
 int main(int argc, char const *argv[]) {
@@ -169,7 +215,9 @@ int main(int argc, char const *argv[]) {
 		maxThreads = 10;
 	}
 	initFirst();
-	pthread_t threads[maxThreads];
+	initSecond();
+	printf("Nombre de producer : %i\n", argc-nbrArg-1);
+	pthread_t threads[argc-nbrArg-1];
 	int nthread = 0;
 	while(nbrArg<argc-1){//Tant qu'on a des arguments à lire (ici, ce sont des fichiers + s'arrêter un avant la fin pour l'output)
 		char* fichier=argv[nbrArg];
@@ -206,7 +254,6 @@ int main(int argc, char const *argv[]) {
 	
 	pthread_t threadsC[maxThreads];
 	int i;
-	printf("Avant le for des consumer\n");
 	for(i = 0; i < maxThreads; i++){
 		pthread_t th = NULL;
 		threadsC[i] = th;
@@ -214,9 +261,16 @@ int main(int argc, char const *argv[]) {
 		if (res != 0)
 			printf("Problème de consommateur\n");
 	}
-	while (1) {
-		//DEBUG
+	if(flagDetail!=1){
+		printf("Lancement du thread de moyenne\n");
+		pthread_t th = NULL;
+		int res = pthread_create(&th,NULL, *average,NULL);
+		if(res != 0)
+			printf("Problème de thread de moyenne\n");
 	}
+	//while (1) {
+		//DEBUG
+	//}
 	void * ret;
 	for (int i = 0; i < nthread; i++) {
 		pthread_join(threads[i], &ret);
