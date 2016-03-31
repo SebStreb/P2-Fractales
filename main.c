@@ -27,23 +27,23 @@ int maxThreads;
 int nbrArg=1; //Lecture des arguments
 
 void initFirst(){
-	int err=pthread_mutex_init( &mutex1, NULL);
-	if(err!=0)
-		fprintf(stderr,"ERREUR : pthread_mutex_init\n");
+	int err = pthread_mutex_init(&mutex1, NULL);
+	if (err != 0)
+		fprintf(stderr, "ERREUR : pthread_mutex_init\n");
 
 	int ret1 = sem_init(&empty1, 0, N);
-	if(ret1!=0){
+	if (ret1 != 0)
 		fprintf(stderr, "ERREUR : Création de empty1\n");
-	}
 
 	int ret2 = sem_init(&full1, 0, 0);
-	if(ret2!=0){
+	if(ret2 != 0)
 		fprintf(stderr, "ERREUR : Création de full1\n");
-	}
-	firstEmpty=0;
-	firstFull=-1;
+
+	firstEmpty = 0;
+	firstFull = -1;
 }
-struct fractal* compute(char* str){
+
+struct fractal* compute(char* str) {
 	const char *delim = " ";
 	char* name = strsep(&str, delim);
 	if(str==NULL){//Si à ce point str vaut NULL, c'est que la chaine ne contenait que le nom
@@ -68,26 +68,25 @@ struct fractal* compute(char* str){
 	double *b = (double*) str;
 	struct fractal *result = fractal_new(name, width, height, *a, *b);
 	return result;
-
 }
 
-void insert(struct fractal *fract){
+void insert(struct fractal *fract) {
 	sem_wait(&empty1);
 	printf("Sem_wait passé\n");
-    pthread_mutex_lock(&mutex1);
-    printf("Lock\n");
-    buffer[firstEmpty]=*fract;
-    firstFull=firstEmpty;
-		firstEmpty++;
-    printf("Inséré ! firstFull = %i, firstEmpty=%i\n", firstFull, firstEmpty);
-    pthread_mutex_unlock(&mutex1);
-    sem_post(&full1);
+	pthread_mutex_lock(&mutex1);
+	printf("Lock\n");
+	buffer[firstEmpty]=*fract;
+	firstFull=firstEmpty;
+	firstEmpty++;
+	printf("Inséré ! firstFull = %i, firstEmpty=%i\n", firstFull, firstEmpty);
+	pthread_mutex_unlock(&mutex1);
+	sem_post(&full1);
 }
 
-void * producer(void *arg){
+void * producer(void *arg) {
 	char * fichier = (char*) arg;
 	printf("Hello ! I'm a producer !\n");
-	FILE* toRead=NULL;
+	FILE* toRead = NULL;
 	fflush(stdout);
 	toRead=fopen(fichier, "r");
 	if(toRead != NULL){
@@ -119,18 +118,18 @@ void * producer(void *arg){
 
 void * consumer(){
 	while(1){
-	 sem_wait(&full1); // attente d'un slot rempli 
-	 pthread_mutex_lock(&mutex1);
-	 printf("Consommateur consomme firsFull : %i, firstEmpty : %i\n", firstFull, firstEmpty);
-	 struct fractal toFill=buffer[firstFull];
-	 toFill=fractal_fill(&toFill);
-	 //Mettre la fract sur le deuxième buffer
-	 firstEmpty=firstFull;
-	 firstFull--;
-	 printf("firsFull : %i, firstEmpty : %i\n", firstFull, firstEmpty);
-	 pthread_mutex_unlock(&mutex1);
-	 sem_post(&empty1); // il y a un slot libre en plus
- }
+		sem_wait(&full1); // attente d'un slot rempli
+		pthread_mutex_lock(&mutex1);
+		printf("Consommateur consomme firsFull : %i, firstEmpty : %i\n", firstFull, firstEmpty);
+		struct fractal toFill=buffer[firstFull];
+		toFill=fractal_fill(&toFill);
+		//Mettre la fract sur le deuxième buffer
+		firstEmpty=firstFull;
+		firstFull--;
+		printf("firsFull : %i, firstEmpty : %i\n", firstFull, firstEmpty);
+		pthread_mutex_unlock(&mutex1);
+		sem_post(&empty1); // il y a un slot libre en plus
+ 	}
 	 pthread_exit(NULL);//pthread_create veut absolument un return
  }
 
@@ -195,18 +194,20 @@ int main(int argc, char const *argv[]) {
 		threads[nthread] = th;
 		nthread++;
 		printf("Lancement du thread, fichier : %s\n", fichier);
-		int res = pthread_create(&th,NULL, *producer,(void *)fichier);
-		if(res!=0)
+		int res = pthread_create(&th, NULL, *producer, (void *) fichier);
+		if (res != 0)
 			printf("Problème de producteur\n");
 		nbrArg++;
 	}
-	
+
 	pthread_t threadsC[maxThreads];
 	int i;
 	printf("Avant le for des consumer\n");
-	for(i=0; i<maxThreads; i++){
-		int res = pthread_create(&threadsC[i],NULL, *consumer,NULL);
-		if(res!=0)
+	for(i = 0; i < maxThreads; i++){
+		pthread_t th = NULL;
+		threadsC[i] = th;
+		int res = pthread_create(&th, NULL, *consumer, NULL);
+		if (res != 0)
 			printf("Problème de consommateur\n");
 	}
 	while (1) {
