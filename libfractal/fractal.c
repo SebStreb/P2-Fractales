@@ -33,7 +33,6 @@ struct fractal *fractal_fill(struct fractal* f){
         }
     }
     double av = sum/count;
-    printf("Moyenne de %s = %f\n", fractal_get_name(f), av);
     fractal_set_av(f, av);
     return f;
 }

@@ -86,14 +86,14 @@ struct fractal* compute(char* str){
 		return NULL;
 	}
 
-	struct fractal *result = fractal_new(name, width, height, a, b);
+	struct fractal *result = fractal_new(name+1, width, height, a, b); //name+1 pour éviter la parenthèse
 	return result;
 }
 
 void insert(struct fractal *fract) {
 	sem_wait(&empty1);
 	pthread_mutex_lock(&mutex1);
-	int res = push(&buffer1, fract);
+	int res = stack_push(&buffer1, fract);
 	if (res != 0)
 		fprintf(stderr, "Impossible d'ajouter la fractale %s au buffer1. Elle a été ignorée\n", fractal_get_name(fract));
 	pthread_mutex_unlock(&mutex1);
@@ -119,8 +119,8 @@ void * producer(void *arg) {
 			}
 		}
 		fclose(toRead);//Fermer le fichier
-		if (strcmp(fichier, "stdin.txt") == 0) //Si c'est le fichier tampon où l'utilisateur a entré ses données, le supprimer
-			remove(fichier);
+		if (strcmp(fichier, "-") == 0) //Si c'est le fichier tampon où l'utilisateur a entré ses données, le supprimer
+			remove("stdin.txt");
 	} else
 		fprintf(stderr, "Impossible de lire le fichier %s. Il a été ignoré\n", fichier);
 	pthread_exit(NULL); //pthread_create veut absolument un return
@@ -130,7 +130,7 @@ void * consumer() {
 	while (1) { //TODO
 		sem_wait(&full1); //attente d'un slot rempli
 		pthread_mutex_lock(&mutex1);
-		struct fractal *toFill = pop(&buffer1);
+		struct fractal *toFill = stack_pop(&buffer1);
 		toFill = fractal_fill(toFill);
 		pthread_mutex_unlock(&mutex1);
 		sem_post(&empty1); //il y a un slot libre en plus
@@ -140,7 +140,7 @@ void * consumer() {
 
 		sem_wait(&empty2); //On attend une place sur le buffer2
 		pthread_mutex_lock(&mutex2); //Quand on l'a, on lock
-		int res = push(&buffer2, toFill); //On met la fractale dans le buffer2
+		int res = stack_push(&buffer2, toFill); //On met la fractale dans le buffer2
 		if (res != 0)
 			fprintf(stderr, "Impossible d'ajouter la fractale %s au buffer2. Elle a été ignorée\n", fractal_get_name(toFill));
 		pthread_mutex_unlock(&mutex2); //On delock
@@ -153,7 +153,7 @@ void * average() {
 	 while (1) { //TODO
 		sem_wait(&full2); //On attend qu'il y ait quelque chose dans le buffer
 		pthread_mutex_lock(&mutex2); //On lock
-		struct fractal *test = pop(&buffer2); //On prend la fractale;
+		struct fractal *test = stack_pop(&buffer2); //On prend la fractale;
 		if (fractal_get_av(test) > fractal_get_av(bestAv)) { //Si la fractale est meilleure que celle précédement en mémoire
 			fractal_free(bestAv);
 			bestAv = test;
@@ -251,6 +251,8 @@ int main(int argc, char const *argv[]) {
 		pthread_join(threads[i], NULL);
 	for (int i = 0; i < maxThreads; i++)
 		pthread_join(threadsC[i], NULL);
+	free_list(buffer1);
+	free_list(buffer2);
 
 	struct fractal *best = NULL;
 	pthread_join(moyenne, (void *) best);

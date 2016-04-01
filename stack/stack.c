@@ -1,6 +1,6 @@
 #include "stack.h"
 
-size_t length(node *list) {
+size_t stack_length(node *list) {
 	size_t result = 0;
 	node *temp = list;
 	while(temp != NULL){
@@ -10,7 +10,7 @@ size_t length(node *list) {
 	return result;
 }
 
-int push(node **list, struct fractal * value) {
+int stack_push(node **list, struct fractal * value) {
 	node *toAdd= (node*) malloc(sizeof(node));
 	if (toAdd == NULL) {
 		free(toAdd);
@@ -23,7 +23,7 @@ int push(node **list, struct fractal * value) {
 
 }
 
-struct fractal * pop(node **list) {
+struct fractal * stack_pop(node **list) {
 	node *tofree = *list;
 	struct fractal *save = tofree->value;
 	*list = tofree->next;

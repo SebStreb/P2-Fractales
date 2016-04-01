@@ -6,10 +6,10 @@ typedef struct node {
   struct node *next;
 } node;
 
-size_t length(node *list);
+size_t stack_length(node *list);
 
-int push(node **list, struct fractal * value);
+int stack_push(node **list, struct fractal * value);
 
-struct fractal * pop(node **list);
+struct fractal * stack_pop(node **list);
 
 void free_list(node *list);
