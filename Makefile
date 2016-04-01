@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -g -Wall -W -I$(HOME)/local/include
-LDFLAGS = -lm -L/usr/local/lib -lSDL2 -L$(HOME)/local/lib -lcunit -pthread
+LDFLAGS = -lm -L/usr/local/lib -L$(HOME)/local/lib -lSDL -lcunit -pthread
 all: fractal
 
 launch: fractal
@@ -35,4 +35,4 @@ lib:
 
 clean:
 	@echo 'Removing files'
-	@rm -rf fractal tests *.o libfractal/*.o libfractal/*.a test/*.o
+	@rm -rf fractal tests *.o libfractal/*.o libfractal/*.a test/*.o *.bmp

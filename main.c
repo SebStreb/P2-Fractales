@@ -144,7 +144,7 @@ void * producer(void *arg){
 
 void * consumer(){
 	while(1){
-	 sem_wait(&full1); // attente d'un slot rempli 
+	 sem_wait(&full1); // attente d'un slot rempli
 	 pthread_mutex_lock(&mutex1);
 	 printf("Consommateur consomme !\n");
 	 struct fractal toFill=pop(&buffer1);
@@ -159,7 +159,7 @@ void * consumer(){
 		sem_wait(&empty2);//On attend une place sur le buffer2
 		pthread_mutex_lock(&mutex2);//Quand on l'a, on lock
 		int res=push(&buffer2, toFill);//On met la fractale dans le buffer2
-		if(rest != 0)
+		if(res != 0)
 			printf("Impossible d'ajouter la fractale au buffer2\n");
 		pthread_mutex_unlock(&mutex2);//On delock
 		sem_post(&full2);//On signale qu'une valeur est présente
@@ -167,7 +167,7 @@ void * consumer(){
  }
 	 pthread_exit(NULL);//pthread_create veut absolument un return
  }
- 
+
  void * average(){
 	 while(1){
 		 sem_wait(&full2);//On attend qu'il y ait quelque chose dans le buffer
@@ -251,7 +251,7 @@ int main(int argc, char const *argv[]) {
 			printf("Problème de producteur\n");
 		nbrArg++;
 	}
-	
+
 	pthread_t threadsC[maxThreads];
 	int i;
 	for(i = 0; i < maxThreads; i++){
@@ -268,9 +268,9 @@ int main(int argc, char const *argv[]) {
 		if(res != 0)
 			printf("Problème de thread de moyenne\n");
 	}
-	//while (1) {
+	while (1) {
 		//DEBUG
-	//}
+	}
 	void * ret;
 	for (int i = 0; i < nthread; i++) {
 		pthread_join(threads[i], &ret);
