@@ -18,7 +18,7 @@ struct fractal *fractal_new(const char *name, int width, int height, double a, d
     return new;
 }
 
-struct fractal fractal_fill(struct fractal* f){
+struct fractal *fractal_fill(struct fractal* f){
 	fflush(stdout);
     int x, y;
     long sum=0;
@@ -35,7 +35,7 @@ struct fractal fractal_fill(struct fractal* f){
     double av = sum/count;
     printf("Moyenne de %s = %f\n", fractal_get_name(f), av);
     fractal_set_av(f, av);
-    return *f;
+    return f;
 }
 
 void fractal_free(struct fractal *f)

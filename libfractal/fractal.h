@@ -25,7 +25,7 @@ struct fractal *fractal_new(const char *name, int width, int height, double a, d
 /*
 *TODO
 */
-struct fractal fractal_fill(struct fractal* f);
+struct fractal *fractal_fill(struct fractal* f);
 
 /*
  * fractal_free: libère la mémoire utilisée par une struct fractal
@@ -94,13 +94,13 @@ double fractal_get_b(const struct fractal *f);
 /*
 *TODO
 */
- double fractal_get_av(const struct fractal *f);
- 
+double fractal_get_av(const struct fractal *f);
+
 /*
 *TODO
 */
- void fractal_set_av(struct fractal *f, double value);
- 
+void fractal_set_av(struct fractal *f, double value);
+
 /*
  * fractal_compute_value
  *
