@@ -23,10 +23,18 @@ node * buffer2; //Buffer pour les fractales calculées et la moyenne
 
 struct fractal *bestAv; //Variable où stocker la meilleure fractale
 int flagDetail = 0;
-pthread_mutex_t prod;
-int nbrProducer;//Condition d'arrêt des consommateurs
-pthread_mutex_t cons;
-int nbrConsumer;//Condition d'arrêt du thread de moyenne
+
+pthread_mutex_t files;
+int remainingFiles = 0;
+
+pthread_mutex_t newfract;
+int readFract = 0;
+
+pthread_mutex_t computed;
+int computedFract = 0;
+
+pthread_mutex_t finished;
+int finishedFract = 0;
 
 static int maxThreads = 0;
 static int nbrArg = 1; //Lecture des arguments
@@ -43,10 +51,6 @@ void initFirst() {
 	int ret2 = sem_init(&full1, 0, 0);
 	if (ret2 != 0)
 		fprintf(stderr, "ERREUR : Création de full1 (premier buffer)\n");
-
-	int err2 = pthread_mutex_init(&prod, NULL);
-	if (err2)
-		fprintf(stderr, "ERREUR : pthread_mutex_init (prod)\n");
 }
 
 void initSecond() {
@@ -62,11 +66,25 @@ void initSecond() {
 	if (ret2 != 0)
 		fprintf(stderr, "ERREUR : Création de full2 (second buffer)\n");
 
-	int err2 = pthread_mutex_init(&cons, NULL);
-	if (err2)
-		fprintf(stderr, "ERREUR : pthread_mutex_init (cons)\n");
-
 	bestAv = fractal_new("empty", 1, 1, 0.0, 0.0);
+}
+
+void initThird() {
+	int err1 = pthread_mutex_init(&files, NULL);
+	if (err1 != 0)
+		fprintf(stderr, "ERREUR pthread_mutex_init (files)\n");
+
+	int err2 = pthread_mutex_init(&newfract, NULL);
+	if (err2 != 0)
+		fprintf(stderr, "ERREUR pthread_mutex_init (newfract)\n");
+
+	int err3 = pthread_mutex_init(&computed, NULL);
+	if (err3 != 0)
+		fprintf(stderr, "ERREUR pthread_mutex_init (computed)\n");
+
+	int err4 = pthread_mutex_init(&finished, NULL);
+	if (err4 != 0)
+		fprintf(stderr, "ERREUR pthread_mutex_init (finished)\n");
 }
 
 int main(int argc, char const *argv[]) {
@@ -103,14 +121,15 @@ int main(int argc, char const *argv[]) {
 	/*   Initialisation des buffers, mutex et semaphores   */
 	initFirst();
 	initSecond();
+	initThird();
 
 	/*   Lancementdes producteurs   */
-	pthread_mutex_lock(&prod);
-	nbrProducer=argc-nbrArg-1;
-	pthread_t threads[nbrProducer];
-	pthread_mutex_unlock(&prod);
-	int nthread = 0;
+	pthread_t threadP[argc-nbrArg-1];
+	int nthreadP = 0;
 	while (nbrArg < argc-1) { //Tant qu'on a des arguments à lire (ici, ce sont des fichiers + s'arrêter un avant la fin pour l'output)
+		pthread_mutex_lock(&files);
+		remainingFiles++;
+		pthread_mutex_unlock(&files);
 		char const *fichier = argv[nbrArg];
 		if (strcmp(fichier, "-") == 0) {
 			FILE* std = NULL;
@@ -132,23 +151,20 @@ int main(int argc, char const *argv[]) {
 			fclose(std);
 		}
 		pthread_t th = NULL;
-		threads[nthread] = th;
-		int res = pthread_create(&threads[nthread], NULL, *producer, (void *) fichier);
-		nthread++;
+		threadP[nthreadP] = th;
+		int res = pthread_create(&threadP[nthreadP], NULL, *producer, (void *) fichier);
+		nthreadP++;
 		if (res != 0)
 			fprintf(stderr, "Problème à la création d'un producteur pour le fichier %s\n", fichier);
 		nbrArg++;
 	}
 
 	/*   Lancement des consommateurs   */
-	pthread_mutex_lock(&cons);
-	nbrConsumer=maxThreads;
-	pthread_t threadsC[nbrConsumer];
-	pthread_mutex_unlock(&cons);
+	pthread_t threadC[maxThreads];
 	for(int i = 0; i < maxThreads; i++){
 		pthread_t th = NULL;
-		threadsC[i] = th;
-		int res = pthread_create(&threadsC[i], NULL, *consumer, NULL);
+		threadC[i] = th;
+		int res = pthread_create(&threadC[i], NULL, *consumer, NULL);
 		if (res != 0)
 			fprintf(stderr, "Problème à la création du consumer n°%d\n", i);
 	}
@@ -159,17 +175,14 @@ int main(int argc, char const *argv[]) {
 	if (res != 0)
 		fprintf(stderr, "Problème à la création du thread de moyenne\n");
 
-	for (int i = 0; i < nthread; i++){
-		pthread_join(threads[i], NULL);
-		pthread_mutex_lock(&prod);
-		nbrProducer--;//Un producer en moins
-		pthread_mutex_unlock(&prod);
+	for (int i = 0; i < nthreadP; i++){
+		pthread_join(threadP[i], NULL);
+		pthread_mutex_lock(&files);
+		remainingFiles--;
+		pthread_mutex_unlock(&files);
 	}
 	for (int i = 0; i < maxThreads; i++){
-		pthread_join(threadsC[i], NULL);
-		pthread_mutex_lock(&cons);
-		nbrConsumer--;//Un consommateur de moins
-		pthread_mutex_unlock(&cons);
+		pthread_join(threadC[i], NULL);
 	}
 
 	pthread_join(moyenne, NULL);
@@ -177,8 +190,8 @@ int main(int argc, char const *argv[]) {
 	free_list(buffer1);
 	free_list(buffer2);
 
-  write_bitmap_sdl(bestAv, argv[nbrArg]);
-  printf("Fichier out écrit avec : %s\n", fractal_get_name(bestAv));
+	write_bitmap_sdl(bestAv, argv[nbrArg]);
+	printf("Fichier out écrit avec : %s\n", fractal_get_name(bestAv));
 	fractal_free(bestAv);
-    return 0;
+	return 0;
 }

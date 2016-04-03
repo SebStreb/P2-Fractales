@@ -19,10 +19,18 @@ extern node * buffer2; //Buffer pour les fractales calculées et la moyenne
 
 extern struct fractal *bestAv; //Variable où stocker la meilleure fractale
 extern int flagDetail;
-extern pthread_mutex_t prod;
-extern int nbrProducer;//Condition d'arrêt des consommateurs
-extern pthread_mutex_t cons;
-extern int nbrConsumer;//Condition d'arrêt du thread de moyenne
+
+extern pthread_mutex_t files;
+extern int remainingFiles;
+
+extern pthread_mutex_t newfract;
+extern int readFract;
+
+extern pthread_mutex_t computed;
+extern int computedFract;
+
+extern pthread_mutex_t finished;
+extern int finishedFract;
 
 struct fractal* compute(char* str) {
 	const char *delim = " ";
@@ -56,6 +64,9 @@ struct fractal* compute(char* str) {
 		return NULL;
 	}
 	struct fractal *result = fractal_new(name+1, width, height, a, b); //name+1 pour éviter la parenthèse
+	pthread_mutex_lock(&newfract);
+	readFract++;
+	pthread_mutex_unlock(&newfract);
 	return result;
 }
 
@@ -99,10 +110,16 @@ void * producer(void *arg) {
 }
 
 void * consumer() {
-	pthread_mutex_lock(&prod);
-	int nprod = nbrProducer;
-	pthread_mutex_unlock(&prod);
-	while (nprod != 0) { //TODO
+	pthread_mutex_lock(&files);
+	pthread_mutex_lock(&newfract);
+	pthread_mutex_lock(&computed);
+	int nfile = remainingFiles;
+	int nread = readFract;
+	int ncompute = computedFract;
+	pthread_mutex_unlock(&files);
+	pthread_mutex_unlock(&newfract);
+	pthread_mutex_unlock(&computed);
+	while (nfile != 0 && nread != ncompute) { //TODO
 		sem_wait(&full1); //attente d'un slot rempli
 		pthread_mutex_lock(&mutex1);
 		struct fractal *toFill = stack_pop(&buffer1);//Récupérer la fractale
@@ -120,18 +137,31 @@ void * consumer() {
 			fprintf(stderr, "Impossible d'ajouter la fractale %s au buffer2. Elle a été ignorée\n", fractal_get_name(toFill));
 		pthread_mutex_unlock(&mutex2); //On delock
 		sem_post(&full2); //On signale qu'une valeur est présente
-		pthread_mutex_lock(&prod);
-		nprod = nbrProducer;
-		pthread_mutex_unlock(&prod);
+		pthread_mutex_lock(&files);
+		pthread_mutex_lock(&newfract);
+		pthread_mutex_lock(&computed);
+		computedFract++;
+		nfile = remainingFiles;
+		nread = readFract;
+		ncompute = computedFract;
+		pthread_mutex_unlock(&files);
+		pthread_mutex_unlock(&newfract);
+		pthread_mutex_unlock(&computed);
 	}
 	pthread_exit(NULL);
 }
 
 void * average() {
-	pthread_mutex_lock(&cons);
-	int ncons = nbrConsumer;
-	pthread_mutex_unlock(&cons);
-	while (ncons != 0) {
+	pthread_mutex_lock(&files);
+	pthread_mutex_lock(&computed);
+	pthread_mutex_lock(&finished);
+	int nfile = remainingFiles;
+	int ncompute = computedFract;
+	int nfinished = finishedFract;
+	pthread_mutex_unlock(&files);
+	pthread_mutex_unlock(&computed);
+	pthread_mutex_unlock(&finished);
+	while (nfile != 0 && ncompute != nfinished) { //TODO
 		sem_wait(&full2); //On attend qu'il y ait quelque chose dans le buffer
 		pthread_mutex_lock(&mutex2); //On lock
 		struct fractal *test = stack_pop(&buffer2); //On prend la fractale;
@@ -144,10 +174,17 @@ void * average() {
 		}
 		pthread_mutex_unlock(&mutex2);
 		sem_post(&empty2);
-		pthread_mutex_lock(&cons);
-		ncons = nbrConsumer;
-		pthread_mutex_unlock(&cons);
+		pthread_mutex_lock(&files);
+		pthread_mutex_lock(&computed);
+		pthread_mutex_lock(&finished);
+		finishedFract++;
+		nfile = remainingFiles;
+		ncompute = computedFract;
+		nfinished = finishedFract;
+		pthread_mutex_unlock(&files);
+		pthread_mutex_unlock(&computed);
+		pthread_mutex_unlock(&finished);
 	}
 	printf("finish\n");
-	pthread_exit(bestAv);
+	pthread_exit(NULL);
 }
