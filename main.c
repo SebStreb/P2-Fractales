@@ -7,26 +7,27 @@
 #include <stdio.h>
 #include "libfractal/fractal.h"
 #include "stack/stack.h"
+#include "threads/threads.h"
 
 #define N 100 //taille max des buffers (plus forcément utile avec les stacks
 
-static pthread_mutex_t mutex1; //mutex du buffer lecture - calcul
-static sem_t empty1; //si > 0 alors il y a des places libres dans le buffer1
-static sem_t full1; //si > 0 alors il y a des données dans le buffer1
+pthread_mutex_t mutex1; //mutex du buffer lecture - calcul
+sem_t empty1; //si > 0 alors il y a des places libres dans le buffer1
+sem_t full1; //si > 0 alors il y a des données dans le buffer1
 node * buffer1; //Buffer pour les fractales "vides"
 
-static pthread_mutex_t mutex2; //Mutex du buffer calcul - moyenne
-static sem_t empty2;
-static sem_t full2;
+pthread_mutex_t mutex2; //Mutex du buffer calcul - moyenne
+sem_t empty2;
+sem_t full2;
 node * buffer2; //Buffer pour les fractales calculées et la moyenne
 
 struct fractal *bestAv; //Variable où stocker la meilleure fractale
 int flagDetail = 0;
-int maxThreads = 0;
 int nbrProducer;//Condition d'arrêt des consommateurs
 int nbrConsumer;//Condition d'arrêt du thread de moyenne
-int nbrArg = 1; //Lecture des arguments
 
+static int maxThreads = 0;
+static int nbrArg = 1; //Lecture des arguments
 
 void initFirst() {
 	int err = pthread_mutex_init(&mutex1, NULL);
@@ -58,126 +59,6 @@ void initSecond() {
 	bestAv = fractal_new("empty", 1, 1, 0.0, 0.0);
 }
 
-struct fractal* compute(char* str){
-	const char *delim = " ";
-	char* name = strsep(&str, delim);
-	if (str == NULL) { //Si à ce point str vaut NULL, c'est que la chaine ne contenait que le nom
-		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
-		return NULL;
-	}
-
-	int width = atoi(strsep(&str, delim));
-	if (str == NULL || width <= 0) { //Il manque des arguments ou la longueur est invalide
-		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
-		return NULL;
-	}
-
-	int height = atoi(strsep(&str, delim));
-	if (str == NULL || height <= 0) { //Il manque des arguments ou la hauteur est invalide
-		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
-		return NULL;
-	}
-
-	double a = strtod(strsep(&str, delim), NULL);
-	if (str == NULL || a > 1.0 || a < -1.0) { //Il manque un argument ou a n'est pas dans les bonnes bornes
-		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
-		return NULL;
-	}
-
-	double b = strtod(str, NULL);
-	if (b > 1.0 || b <- 1.0) { //b n'est pas dans les bonnes bornes
-		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
-		return NULL;
-	}
-	struct fractal *result = fractal_new(name, width, height, a, b); //name+1 pour éviter la parenthèse
-	return result;
-}
-
-void insert(struct fractal *fract) {
-	sem_wait(&empty1);//On attend une place sur le buffer
-	pthread_mutex_lock(&mutex1);//On lock
-	int res = stack_push(&buffer1, fract);//On ajoute la fractale
-	if (res != 0)//S'il y a un problème, le signaler
-		fprintf(stderr, "Impossible d'ajouter la fractale %s au buffer1. Elle a été ignorée\n", fractal_get_name(fract));
-	pthread_mutex_unlock(&mutex1);
-	sem_post(&full1);
-}
-
-void * producer(void *arg) {
-	char * fichier = (char*) arg;
-	FILE* toRead = NULL;//Créer le FILE pour la lecture
-	if (strcmp(fichier, "-") != 0 )//Ouvrir le fichier si ce n'est pas "-"
-		toRead = fopen(fichier, "r");
-	else//Si c'est "-", on a utilisé l'entrée standard, ouvir le fichier temporaire stdin.txt
-		toRead = fopen("stdin.txt", "r");
-	if (toRead != NULL) {//Si on a su ouvir
-		char chaine[50] = "";
-		while (fgets(chaine, 50, toRead) != NULL) { // On lit le fichier tant qu'on ne reçoit pas d'erreur (NULL)
-			chaine[strlen(chaine)-1] = '\0';
-			char comm = *chaine;
-			if (comm != '#') { //On regarde si ce n'est pas une ligne en commentaire
-				struct fractal *toAdd = compute(chaine);
-				if (toAdd != NULL){
-					insert(toAdd);
-				}
-			}
-		}
-		fclose(toRead);//Fermer le fichier
-		if (strcmp(fichier, "-") == 0) //Si c'est le fichier tampon où l'utilisateur a entré ses données, le supprimer
-			remove("stdin.txt");
-	} 
-	else{
-		fprintf(stderr, "Impossible de lire le fichier %s. Il a été ignoré\n", fichier);
-	}
-	pthread_exit(NULL);
-}
-
-void * consumer() {
-	while (nbrProducer != 0 || stack_length(buffer1) != 0) { //TODO
-		sem_wait(&full1); //attente d'un slot rempli
-		pthread_mutex_lock(&mutex1);
-		struct fractal *toFill = stack_pop(&buffer1);//Récupérer la fractale
-		toFill = fractal_fill(toFill);//Remplir la fractale
-		if (flagDetail){//S'il faut faire les détails, créer les images
-				write_bitmap_sdl(toFill, strcat(fractal_get_name(toFill), ".bmp"));//bouger dans le thread de moyenne ?
-			}
-		pthread_mutex_unlock(&mutex1);
-		sem_post(&empty1); //il y a un slot libre en plus
-		//Partie producer
-		sem_wait(&empty2); //On attend une place sur le buffer2
-		pthread_mutex_lock(&mutex2); //Quand on l'a, on lock
-		int res = stack_push(&buffer2, toFill); //On met la fractale dans le buffer2
-		if (res != 0)
-			fprintf(stderr, "Impossible d'ajouter la fractale %s au buffer2. Elle a été ignorée\n", fractal_get_name(toFill));
-		pthread_mutex_unlock(&mutex2); //On delock
-		sem_post(&full2); //On signale qu'une valeur est présente
-	 }
-	 pthread_exit(NULL);
- }
-
-void * average() {
-	 while (nbrConsumer != 0 || stack_length(buffer2)!=0) {
-		 if(nbrConsumer != 0){//Evite un deathlock à la toute dernière itéraltion
-			sem_wait(&full2); //On attend qu'il y ait quelque chose dans le buffer
-		}
-		else{
-			break;
-		}
-		pthread_mutex_lock(&mutex2); //On lock
-		struct fractal *test = stack_pop(&buffer2); //On prend la fractale;
-		if (fractal_get_av(test) > fractal_get_av(bestAv)) { //Si la fractale est meilleure que celle précédement en mémoire
-			fractal_free(bestAv);
-			bestAv = test;
-		}
-		else{
-			fractal_free(test);
-		}
-		pthread_mutex_unlock(&mutex2);
-		sem_post(&empty2);
-	 }
-	 pthread_exit(bestAv);
- }
-
 int main(int argc, char const *argv[]) {
 	/*   Lecture des arguments   */
 	if (argc < 3) { //Il faut au moins 3 arguments (le nom de base, un fichier d'entrée et un de sortie)
@@ -208,11 +89,11 @@ int main(int argc, char const *argv[]) {
 		printf("Vous n'avez pas précisé de nombre de threads de calcul, nombre par défaut : 1\n");
 		maxThreads = 1;
 	}
-	
+
 	/*   Initialisation des buffers, mutex et semaphores   */
 	initFirst();
 	initSecond();
-	
+
 	/*   Lancementdes producteurs   */
 	nbrProducer=argc-nbrArg-1;
 	pthread_t threads[nbrProducer];
@@ -278,5 +159,6 @@ int main(int argc, char const *argv[]) {
 	pthread_join(moyenne, NULL);
     write_bitmap_sdl(bestAv, argv[nbrArg]);
     printf("Fichier out écrit avec : %s\n", fractal_get_name(bestAv));
+	fractal_free(bestAv);
     return 0;
 }

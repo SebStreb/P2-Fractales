@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -g -Wall -W -I$(HOME)/local/include
 LDFLAGS = -lm -L/usr/local/lib -L$(HOME)/local/lib -lSDL -lcunit -pthread
-LIBRAIRIES = libfractal/libfractal.a stack/libstack.a
+LIBRAIRIES = libfractal/libfractal.a stack/libstack.a threads/libthread.a
 all: fractal
 
 testing: tests
@@ -32,8 +32,12 @@ stack/libstack.a:
 	@echo 'Building stack lib'
 	@cd stack && $(MAKE)
 
+threads/libthread.a:
+	@echo 'Building thread lib'
+	@cd threads && $(MAKE)
+
 .PHONY: clean
 
 clean:
 	@echo 'Removing files'
-	@rm -rf fractal tests *.o libfractal/*.o libfractal/*.a test/*.o *.bmp stack/*.o stack/*.a stdin.txt
+	@rm -rf fractal tests *.o libfractal/*.o libfractal/*.a test/*.o *.bmp stack/*.o stack/*.a threads/*.o threads/*.a stdin.txt
