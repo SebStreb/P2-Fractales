@@ -159,6 +159,8 @@ int main(int argc, char const *argv[]) {
 		nbrArg++;
 	}
 
+	sleep(1);
+
 	/*   Lancement des consommateurs   */
 	pthread_t threadC[maxThreads];
 	for(int i = 0; i < maxThreads; i++){
@@ -181,9 +183,9 @@ int main(int argc, char const *argv[]) {
 		remainingFiles--;
 		pthread_mutex_unlock(&files);
 	}
-	for (int i = 0; i < maxThreads; i++){
+	/*for (int i = 0; i < maxThreads; i++){
 		pthread_join(threadC[i], NULL);
-	}
+	}*/
 
 	pthread_join(moyenne, NULL);
 

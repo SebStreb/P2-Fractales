@@ -63,7 +63,7 @@ struct fractal* compute(char* str) {
 		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
 		return NULL;
 	}
-	struct fractal *result = fractal_new(name+1, width, height, a, b); //name+1 pour éviter la parenthèse
+	struct fractal *result = fractal_new(name, width, height, a, b);
 	pthread_mutex_lock(&newfract);
 	readFract++;
 	pthread_mutex_unlock(&newfract);
@@ -119,7 +119,8 @@ void * consumer() {
 	pthread_mutex_unlock(&files);
 	pthread_mutex_unlock(&newfract);
 	pthread_mutex_unlock(&computed);
-	while (nfile != 0 && nread != ncompute) { //TODO
+	printf("nfile : %d, nread : %d, ncompute : %d\n", nfile, nread, ncompute);
+	while (nfile != 0 || nread != ncompute) { //TODO
 		sem_wait(&full1); //attente d'un slot rempli
 		pthread_mutex_lock(&mutex1);
 		struct fractal *toFill = stack_pop(&buffer1);//Récupérer la fractale
@@ -147,21 +148,23 @@ void * consumer() {
 		pthread_mutex_unlock(&files);
 		pthread_mutex_unlock(&newfract);
 		pthread_mutex_unlock(&computed);
+		printf("nfile : %d, nread : %d, ncompute : %d\n", nfile, nread, ncompute);
 	}
 	pthread_exit(NULL);
 }
 
 void * average() {
 	pthread_mutex_lock(&files);
-	pthread_mutex_lock(&computed);
+	pthread_mutex_lock(&newfract);
 	pthread_mutex_lock(&finished);
 	int nfile = remainingFiles;
-	int ncompute = computedFract;
+	int nread = readFract;
 	int nfinished = finishedFract;
 	pthread_mutex_unlock(&files);
-	pthread_mutex_unlock(&computed);
+	pthread_mutex_unlock(&newfract);
 	pthread_mutex_unlock(&finished);
-	while (nfile != 0 && ncompute != nfinished) { //TODO
+	printf("nfile : %d, nread : %d, nfinished : %d\n", nfile, nread, nfinished);
+	while (nfile != 0 || nread != nfinished) { //TODO
 		sem_wait(&full2); //On attend qu'il y ait quelque chose dans le buffer
 		pthread_mutex_lock(&mutex2); //On lock
 		struct fractal *test = stack_pop(&buffer2); //On prend la fractale;
@@ -175,15 +178,16 @@ void * average() {
 		pthread_mutex_unlock(&mutex2);
 		sem_post(&empty2);
 		pthread_mutex_lock(&files);
-		pthread_mutex_lock(&computed);
+		pthread_mutex_lock(&newfract);
 		pthread_mutex_lock(&finished);
 		finishedFract++;
 		nfile = remainingFiles;
-		ncompute = computedFract;
+		nread = readFract;
 		nfinished = finishedFract;
 		pthread_mutex_unlock(&files);
-		pthread_mutex_unlock(&computed);
+		pthread_mutex_unlock(&newfract);
 		pthread_mutex_unlock(&finished);
+		printf("nfile : %d, nread : %d, nfinished : %d\n", nfile, nread, nfinished);
 	}
 	printf("finish\n");
 	pthread_exit(NULL);
