@@ -53,7 +53,7 @@ struct fractal* compute(char* str) {
 		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
 		return NULL;
 	}
-	struct fractal *result = fractal_new(name, width, height, a, b); //name+1 pour éviter la parenthèse
+	struct fractal *result = fractal_new(name+1, width, height, a, b); //name+1 pour éviter la parenthèse
 	return result;
 }
 
@@ -102,7 +102,7 @@ void * consumer() {
 		pthread_mutex_lock(&mutex1);
 		struct fractal *toFill = stack_pop(&buffer1);//Récupérer la fractale
 		toFill = fractal_fill(toFill);//Remplir la fractale
-		if (flagDetail){//S'il faut faire les détails, créer les images
+		if (flagDetail) {//S'il faut faire les détails, créer les images
 				write_bitmap_sdl(toFill, strcat(fractal_get_name(toFill), ".bmp"));//bouger dans le thread de moyenne ?
 			}
 		pthread_mutex_unlock(&mutex1);
@@ -120,9 +120,11 @@ void * consumer() {
  }
 
 void * average() {
+	printf("In average\n");
 	 while (nbrConsumer != 0 || stack_length(buffer2)!=0) {
 		 if(nbrConsumer != 0){//Evite un deathlock à la toute dernière itéraltion
 			sem_wait(&full2); //On attend qu'il y ait quelque chose dans le buffer
+			//break;
 		}
 		else{
 			break;
@@ -139,5 +141,6 @@ void * average() {
 		pthread_mutex_unlock(&mutex2);
 		sem_post(&empty2);
 	 }
+	 printf("finish\n");
 	 pthread_exit(bestAv);
  }

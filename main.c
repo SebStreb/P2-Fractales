@@ -153,12 +153,14 @@ int main(int argc, char const *argv[]) {
 		pthread_join(threadsC[i], NULL);
 		nbrConsumer--;//Un consommateur de moins
 	}
+
+	pthread_join(moyenne, NULL);
+
 	free_list(buffer1);
 	free_list(buffer2);
 
-	pthread_join(moyenne, NULL);
-    write_bitmap_sdl(bestAv, argv[nbrArg]);
-    printf("Fichier out écrit avec : %s\n", fractal_get_name(bestAv));
+  write_bitmap_sdl(bestAv, argv[nbrArg]);
+  printf("Fichier out écrit avec : %s\n", fractal_get_name(bestAv));
 	fractal_free(bestAv);
     return 0;
 }
