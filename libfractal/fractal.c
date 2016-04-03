@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>//Pour le dev
 #include "fractal.h"
 
 struct fractal *fractal_new(const char *name, int width, int height, double a, double b)
@@ -19,20 +18,17 @@ struct fractal *fractal_new(const char *name, int width, int height, double a, d
 }
 
 struct fractal *fractal_fill(struct fractal* f){
-	fflush(stdout);
     int x, y;
-    long sum=0;
-    double count = 0.0;
-    fflush(stdout);
-    for (x = 0; x < fractal_get_width(f); x++) {
+    long sum=0;//variable pour stocker toutes les valeurs
+    double count = 0.0;//Un conteur en double pour la division (sinon on pert les virgules)
+    for (x = 0; x < fractal_get_width(f); x++) {//Remplir chaque case
         for (y = 0; y < fractal_get_height(f); y++) {
-			fflush(stdout);
             fractal_compute_value(f, x, y);
             sum=sum+fractal_get_value(f, x, y);
             count = count+1.0;
         }
     }
-    double av = sum/count;
+    double av = sum/count;//Calcul et stockage de la moyenne
     fractal_set_av(f, av);
     return f;
 }
@@ -46,7 +42,11 @@ void fractal_free(struct fractal *f)
 
 int fractal_get_value(const struct fractal *f, int x, int y)
 {
-    int index = fractal_get_height(f)*x + y;
+    int index;
+	if(x == 0)
+		index = y;
+	else
+		index = fractal_get_height(f)*x + y;
     return *((f->val)+index);
 }
 
@@ -57,8 +57,8 @@ char* fractal_get_name(const struct fractal *f){
 void fractal_set_value(struct fractal *f, int x, int y, int val)
 {
 	int index;
-	if(x==0)
-		index=y;
+	if(x == 0)
+		index = y;
 	else
 		index = fractal_get_height(f)*(x-1) + y;
     *((f->val)+index) = val;

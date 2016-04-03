@@ -22,9 +22,13 @@ struct fractal {
  * @return: un pointeur vers une struct fractal, ou NULL si erreur
  */
 struct fractal *fractal_new(const char *name, int width, int height, double a, double b);
+
 /*
-*TODO
-*/
+ *fracta_fill: calcule et complète une structure fractal
+ * 
+ *  @f : Une fractale correctement initialisée
+ *  @return : La fractale calculée via fractal_compute_value avec sa moyenne mise à jour
+ */
 struct fractal *fractal_fill(struct fractal* f);
 
 /*
@@ -45,7 +49,10 @@ void fractal_free(struct fractal *f);
 int fractal_get_value(const struct fractal *f, int x, int y);
 
 /*
-*TODO
+* fractal_get_name: retourne la chaine de caractère correspondant au nom de la fractale
+* 
+* @f: fractale 
+* @return: le nom de la fractale f
 */
 char* fractal_get_name(const struct fractal *f);
 
@@ -92,12 +99,18 @@ double fractal_get_a(const struct fractal *f);
 double fractal_get_b(const struct fractal *f);
 
 /*
-*TODO
+* fractal_get_av: retourne la moyenne de la fractale
+* 
+* @f: fractale
+* @return: un double correspondant à la moyenne
 */
 double fractal_get_av(const struct fractal *f);
 
 /*
-*TODO
+* fractal_set_av: met à jour la moyenne de la fractale à "value"
+* 
+* @f: fractale
+* @value: moyenne
 */
 void fractal_set_av(struct fractal *f, double value);
 
