@@ -23,7 +23,9 @@ node * buffer2; //Buffer pour les fractales calculées et la moyenne
 
 struct fractal *bestAv; //Variable où stocker la meilleure fractale
 int flagDetail = 0;
+pthread_mutex_t prod;
 int nbrProducer;//Condition d'arrêt des consommateurs
+pthread_mutex_t cons;
 int nbrConsumer;//Condition d'arrêt du thread de moyenne
 
 static int maxThreads = 0;
@@ -41,6 +43,10 @@ void initFirst() {
 	int ret2 = sem_init(&full1, 0, 0);
 	if (ret2 != 0)
 		fprintf(stderr, "ERREUR : Création de full1 (premier buffer)\n");
+
+	int err2 = pthread_mutex_init(&prod, NULL);
+	if (err2)
+		fprintf(stderr, "ERREUR : pthread_mutex_init (prod)\n");
 }
 
 void initSecond() {
@@ -55,6 +61,10 @@ void initSecond() {
 	int ret2 = sem_init(&full2, 0, 0);
 	if (ret2 != 0)
 		fprintf(stderr, "ERREUR : Création de full2 (second buffer)\n");
+
+	int err2 = pthread_mutex_init(&cons, NULL);
+	if (err2)
+		fprintf(stderr, "ERREUR : pthread_mutex_init (cons)\n");
 
 	bestAv = fractal_new("empty", 1, 1, 0.0, 0.0);
 }
@@ -95,8 +105,10 @@ int main(int argc, char const *argv[]) {
 	initSecond();
 
 	/*   Lancementdes producteurs   */
+	pthread_mutex_lock(&prod);
 	nbrProducer=argc-nbrArg-1;
 	pthread_t threads[nbrProducer];
+	pthread_mutex_unlock(&prod);
 	int nthread = 0;
 	while (nbrArg < argc-1) { //Tant qu'on a des arguments à lire (ici, ce sont des fichiers + s'arrêter un avant la fin pour l'output)
 		char const *fichier = argv[nbrArg];
@@ -129,8 +141,10 @@ int main(int argc, char const *argv[]) {
 	}
 
 	/*   Lancement des consommateurs   */
+	pthread_mutex_lock(&cons);
 	nbrConsumer=maxThreads;
-	pthread_t threadsC[maxThreads];
+	pthread_t threadsC[nbrConsumer];
+	pthread_mutex_unlock(&cons);
 	for(int i = 0; i < maxThreads; i++){
 		pthread_t th = NULL;
 		threadsC[i] = th;
@@ -147,11 +161,15 @@ int main(int argc, char const *argv[]) {
 
 	for (int i = 0; i < nthread; i++){
 		pthread_join(threads[i], NULL);
+		pthread_mutex_lock(&prod);
 		nbrProducer--;//Un producer en moins
+		pthread_mutex_unlock(&prod);
 	}
 	for (int i = 0; i < maxThreads; i++){
 		pthread_join(threadsC[i], NULL);
+		pthread_mutex_lock(&cons);
 		nbrConsumer--;//Un consommateur de moins
+		pthread_mutex_unlock(&cons);
 	}
 
 	pthread_join(moyenne, NULL);

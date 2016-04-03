@@ -19,7 +19,9 @@ extern node * buffer2; //Buffer pour les fractales calculées et la moyenne
 
 extern struct fractal *bestAv; //Variable où stocker la meilleure fractale
 extern int flagDetail;
+extern pthread_mutex_t prod;
 extern int nbrProducer;//Condition d'arrêt des consommateurs
+extern pthread_mutex_t cons;
 extern int nbrConsumer;//Condition d'arrêt du thread de moyenne
 
 struct fractal* compute(char* str) {
@@ -97,7 +99,10 @@ void * producer(void *arg) {
 }
 
 void * consumer() {
-	while (nbrProducer != 0 || stack_length(buffer1) != 0) { //TODO
+	pthread_mutex_lock(&prod);
+	int nprod = nbrProducer;
+	pthread_mutex_unlock(&prod);
+	while (nprod != 0) { //TODO
 		sem_wait(&full1); //attente d'un slot rempli
 		pthread_mutex_lock(&mutex1);
 		struct fractal *toFill = stack_pop(&buffer1);//Récupérer la fractale
@@ -115,20 +120,19 @@ void * consumer() {
 			fprintf(stderr, "Impossible d'ajouter la fractale %s au buffer2. Elle a été ignorée\n", fractal_get_name(toFill));
 		pthread_mutex_unlock(&mutex2); //On delock
 		sem_post(&full2); //On signale qu'une valeur est présente
-	 }
-	 pthread_exit(NULL);
- }
+		pthread_mutex_lock(&prod);
+		nprod = nbrProducer;
+		pthread_mutex_unlock(&prod);
+	}
+	pthread_exit(NULL);
+}
 
 void * average() {
-	printf("In average\n");
-	 while (nbrConsumer != 0 || stack_length(buffer2)!=0) {
-		 if(nbrConsumer != 0){//Evite un deathlock à la toute dernière itéraltion
-			sem_wait(&full2); //On attend qu'il y ait quelque chose dans le buffer
-			//break;
-		}
-		else{
-			break;
-		}
+	pthread_mutex_lock(&cons);
+	int ncons = nbrConsumer;
+	pthread_mutex_unlock(&cons);
+	while (ncons != 0) {
+		sem_wait(&full2); //On attend qu'il y ait quelque chose dans le buffer
 		pthread_mutex_lock(&mutex2); //On lock
 		struct fractal *test = stack_pop(&buffer2); //On prend la fractale;
 		if (fractal_get_av(test) > fractal_get_av(bestAv)) { //Si la fractale est meilleure que celle précédement en mémoire
@@ -140,7 +144,10 @@ void * average() {
 		}
 		pthread_mutex_unlock(&mutex2);
 		sem_post(&empty2);
-	 }
-	 printf("finish\n");
-	 pthread_exit(bestAv);
- }
+		pthread_mutex_lock(&cons);
+		ncons = nbrConsumer;
+		pthread_mutex_unlock(&cons);
+	}
+	printf("finish\n");
+	pthread_exit(bestAv);
+}
