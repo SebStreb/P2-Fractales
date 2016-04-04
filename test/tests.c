@@ -4,8 +4,8 @@
 
 void testFractales(void) {
 	char * name = "Test";
-	int hauteur =100;
-	int largeur = 50;
+	int largeur =100;
+	int hauteur = 50;
 	double a = 0.75;
 	double b = -0.7;
 	double moyenne = 2.221400;
@@ -48,5 +48,7 @@ int main(int argc, char const *argv[]) {
 	CU_basic_run_tests();
 	CU_basic_show_failures(CU_get_failure_list());
 	CU_cleanup_registry();
+
+	printf("\n\n");
 	return 0;
 }

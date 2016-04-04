@@ -24,7 +24,7 @@ struct fractal {
  * @b: partie imaginaire des coordonnées de la fractale
  * @return: un pointeur vers une struct fractal, ou NULL si erreur
  */
-struct fractal *fractal_new(const char *name, int width, int height, double a, double b);
+struct fractal *fractal_new(const char *name, int width, int height, double a, double b);;
 
 /*
  * fracta_fill: calcule et complète une structure fractal
