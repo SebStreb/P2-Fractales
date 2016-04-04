@@ -12,23 +12,24 @@ struct fractal *fractal_new(const char *name, int width, int height, double a, d
     new->height = height;
     new->a = a;
     new->b = b;
-    new->val = calloc(width*height, sizeof(int));//Calloc pour être sûr d'avoir 0
-    new->average=-1.0;
+    new->val = calloc(width*height, sizeof(int)); //Calloc pour être sûr d'avoir 0
+    new->average = -1.0;
     return new;
 }
 
-struct fractal *fractal_fill(struct fractal* f){
+struct fractal *fractal_fill(struct fractal* f)
+{
     int x, y;
-    long sum=0;//variable pour stocker toutes les valeurs
-    double count = 0.0;//Un conteur en double pour la division (sinon on pert les virgules)
-    for (x = 0; x < fractal_get_width(f); x++) {//Remplir chaque case
+    long sum = 0; //variable pour stocker toutes les valeurs
+    double count = 0.0; //Un conteur en double pour la division (sinon on pert les virgules)
+    for (x = 0; x < fractal_get_width(f); x++) { //Remplir chaque case
         for (y = 0; y < fractal_get_height(f); y++) {
             fractal_compute_value(f, x, y);
-            sum=sum+fractal_get_value(f, x, y);
-            count = count+1.0;
+            sum = sum + fractal_get_value(f, x, y);
+            count = count + 1.0;
         }
     }
-    double av = sum/count;//Calcul et stockage de la moyenne
+    double av = sum / count; //Calcul et stockage de la moyenne
     fractal_set_av(f, av);
     return f;
 }
@@ -46,8 +47,8 @@ int fractal_get_value(const struct fractal *f, int x, int y)
 	if(x == 0)
 		index = y;
 	else
-		index = fractal_get_height(f)*x + y;
-    return *((f->val)+index);
+		index = fractal_get_height(f)*(x-1) + y;
+    return *((f->val) + index);
 }
 
 char* fractal_get_name(const struct fractal *f){
@@ -57,11 +58,11 @@ char* fractal_get_name(const struct fractal *f){
 void fractal_set_value(struct fractal *f, int x, int y, int val)
 {
 	int index;
-	if(x == 0)
+	if (x == 0)
 		index = y;
 	else
 		index = fractal_get_height(f)*(x-1) + y;
-    *((f->val)+index) = val;
+    *((f->val) + index) = val;
 }
 
 int fractal_get_width(const struct fractal *f)
@@ -89,5 +90,5 @@ double fractal_get_av(const struct fractal *f){
 }
 
 void fractal_set_av(struct fractal *f, double value){
-	f->average=value;
+	f->average = value;
 }

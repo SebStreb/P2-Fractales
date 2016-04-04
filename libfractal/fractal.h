@@ -1,14 +1,17 @@
 #ifndef _FRACTAL_H
 #define _FRACTAL_H
 
+/*
+ * Strucure pour les fractales
+ */
 struct fractal {
     char *name;
     int width;
     int height;
     double a;
     double b;
-    int* val;
-    double average;
+    int* val; //Tableau des valeurs
+    double average; //Stockage de la moyenne
 };
 
 /*
@@ -24,10 +27,10 @@ struct fractal {
 struct fractal *fractal_new(const char *name, int width, int height, double a, double b);
 
 /*
- *fracta_fill: calcule et complète une structure fractal
- * 
- *  @f : Une fractale correctement initialisée
- *  @return : La fractale calculée via fractal_compute_value avec sa moyenne mise à jour
+ * fracta_fill: calcule et complète une structure fractal
+ *
+ * @f: Une fractale correctement initialisée
+ * @return: La fractale calculée via fractal_compute_value avec sa moyenne mise à jour
  */
 struct fractal *fractal_fill(struct fractal* f);
 
@@ -49,11 +52,11 @@ void fractal_free(struct fractal *f);
 int fractal_get_value(const struct fractal *f, int x, int y);
 
 /*
-* fractal_get_name: retourne la chaine de caractère correspondant au nom de la fractale
-* 
-* @f: fractale 
-* @return: le nom de la fractale f
-*/
+ * fractal_get_name: retourne la chaine de caractère correspondant au nom de la fractale
+ *
+ * @f: fractale
+ * @return: le nom de la fractale f
+ */
 char* fractal_get_name(const struct fractal *f);
 
 /*
@@ -99,19 +102,19 @@ double fractal_get_a(const struct fractal *f);
 double fractal_get_b(const struct fractal *f);
 
 /*
-* fractal_get_av: retourne la moyenne de la fractale
-* 
-* @f: fractale
-* @return: un double correspondant à la moyenne
-*/
+ * fractal_get_av: retourne la moyenne de la fractale
+ *
+ * @f: fractale
+ * @return: un double correspondant à la moyenne
+ */
 double fractal_get_av(const struct fractal *f);
 
 /*
-* fractal_set_av: met à jour la moyenne de la fractale à "value"
-* 
-* @f: fractale
-* @value: moyenne
-*/
+ * fractal_set_av: met à jour la moyenne de la fractale à "value"
+ *
+ * @f: fractale
+ * @value: moyenne
+ */
 void fractal_set_av(struct fractal *f, double value);
 
 /*
