@@ -90,7 +90,7 @@ void insert(struct fractal *fract) {
 }
 
 void * producer(void *arg) {
-	printf("Lecture du fichier %s\n", arg);
+	printf("Lecture du fichier %s\n", (char *) arg);
 	char * fichier = (char*) arg;
 	FILE* toRead = NULL;//Créer le FILE pour la lecture
 	if (strcmp(fichier, "-") != 0 )//Ouvrir le fichier si ce n'est pas "-"
@@ -127,7 +127,7 @@ void * consumer() {
 		toFill = fractal_fill(toFill);//Remplir la fractale
 		if (flagDetail) {//S'il faut faire les détails, créer les images
 				write_bitmap_sdl(toFill, strcat(fractal_get_name(toFill), ".bmp"));
-				printf("Fichier %s.bmp écrit\n", fractal_get_name(toFill));
+				printf("Fichier %s écrit\n", fractal_get_name(toFill));
 			}
 		pthread_mutex_unlock(&mutex1);
 		sem_post(&empty1); //il y a un slot libre en plus

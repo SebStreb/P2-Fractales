@@ -201,7 +201,7 @@ int main(int argc, char const *argv[]) {
 
 	write_bitmap_sdl(bestAv, argv[nbrArg]); //Écriture du fichier
 	printf("Fichier %s écrit avec : %s\n", argv[nbrArg], fractal_get_name(bestAv));
-	remove(strcat(fractal_get_name(bestAv), ".bmp")); //Supression du fichier doublon
+	remove(fractal_get_name(bestAv)); //Supression du fichier doublon
 	fractal_free(bestAv);
 	return 0;
 }
