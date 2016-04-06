@@ -2,6 +2,12 @@
 #include <CUnit/basic.h>
 #include "../libfractal/fractal.h"
 
+void testGetSet(void) {
+	struct fractal * test = fractal_new("NULL", 100, 50, 0, 0);
+	fractal_set_value(test, 1, 1, 10);
+	CU_ASSERT_EQUAL(10, fractal_get_value(test, 1, 1));
+}
+
 void testFractales(void) {
 	char * name = "Test";
 	int largeur =100;
@@ -9,7 +15,7 @@ void testFractales(void) {
 	double a = 0.75;
 	double b = -0.7;
 	double moyenne = 2.221400;
-	struct fractal * test = fractal_new(name, hauteur, largeur, a, b);
+	struct fractal * test = fractal_new(name, largeur, hauteur, a, b);
 	test=fractal_fill(test);
 	CU_ASSERT_STRING_EQUAL(name, fractal_get_name(test));
 	CU_ASSERT_EQUAL(hauteur, fractal_get_height(test));
@@ -38,7 +44,9 @@ int main(int argc, char const *argv[]) {
 		return CU_get_error();
 	}
 
-	if ((NULL == CU_add_test(pSuite, "test de la librairie fractale", testFractales))
+	if (
+		NULL == CU_add_test(pSuite, "test get/set fractales", testGetSet) ||
+		NULL == CU_add_test(pSuite, "test de la librairie fractale", testFractales)
 	) {
 		CU_cleanup_registry();
 		return CU_get_error();
