@@ -95,7 +95,7 @@ void initThird() {
 int main(int argc, char const *argv[]) {
 	/*   Lecture des arguments   */
 	if (argc < 3) { //Il faut au moins 3 arguments (le nom de base, un fichier d'entrée et un de sortie)
-		fprintf(stderr, "Il n'y a pas assez d'arguments donnés, il faut au moins stipuler un fichier d'où tirer les données des fractales et un fichier de sortie!");
+		fprintf(stderr, "Il n'y a pas assez d'arguments donnés, vous devez au moins donner un fichier contenant les fractales et un fichier de sortie!\n");
 		exit(EXIT_FAILURE);
 	}
 	char const *arg = argv[nbrArg];
@@ -107,9 +107,9 @@ int main(int argc, char const *argv[]) {
 		flagDetail = 0;
 	}
 	arg = argv[nbrArg];
-	char *code = strstr(arg, "--"); //Si on trouve les deux tirets, c'est maxThreads
-	if (code != NULL) {
-		int nbr = atoi(code+2); //Récupérer le nombre
+	if (strcmp(arg, "--maxthreads") == 0) {//Chercher maxthreads
+		nbrArg++; //On va un argument plus loin pour trouver le nombre
+		int nbr = atoi(argv[nbrArg]); //Récupérer le nombre
 		maxThreads = nbr; //Le stocker
 		nbrArg++; //Passer à l'argument suivant
 		printf("Vous avez demandé %i threads de calcul\n", maxThreads);
