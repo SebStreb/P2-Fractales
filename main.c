@@ -12,8 +12,6 @@
 #include "stack/stack.h"
 #include "threads/threads.h"
 
-#define N 100 //taille max des buffers (plus forcément utile avec les stacks)
-
 /*   Protection du premier buffer   */
 pthread_mutex_t mutex1; //mutex du buffer lecture - calcul
 sem_t empty1; //si > 0 alors il y a des places libres dans le buffer1
@@ -46,7 +44,7 @@ void initFirst() {
 	if (err != 0)
 		fprintf(stderr,"ERREUR : pthread_mutex_init (premier buffer)\n");
 
-	int ret1 = sem_init(&empty1, 0, N);
+	int ret1 = sem_init(&empty1, 0, maxThreads);
 	if (ret1 != 0)
 		fprintf(stderr, "ERREUR : Création de empty1 (premier buffer)\n");
 
@@ -63,7 +61,7 @@ void initSecond() {
 	if (err != 0)
 		fprintf(stderr,"ERREUR : pthread_mutex_init (second buffer)\n");
 
-	int ret1 = sem_init(&empty2, 0, N);
+	int ret1 = sem_init(&empty2, 0, maxThreads);
 	if (ret1 != 0)
 		fprintf(stderr, "ERREUR : Création de empty2 (second buffer)\n");
 
@@ -93,6 +91,7 @@ void initThird() {
  * Fonction principale du programme
  */
 int main(int argc, char const *argv[]) {
+	printf("Bonjour et bienvenue dans ce programme de création de fracatles\n");//Bonjour
 	/*   Lecture des arguments   */
 	if (argc < 3) { //Il faut au moins 3 arguments (le nom de base, un fichier d'entrée et un de sortie)
 		fprintf(stderr, "Il n'y a pas assez d'arguments donnés, vous devez au moins donner un fichier contenant les fractales et un fichier de sortie!\n");
