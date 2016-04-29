@@ -26,7 +26,7 @@ node * buffer2; //Buffer pour les fractales calculées et la moyenne
 
 /*   Gestion de la fin du programme   */
 pthread_mutex_t files;
-int remainingFiles = 0; //Stock le nombre de fichiers restant à lire
+int flagFiles = 0; //Stock le nombre de fichiers restant à lire
 pthread_mutex_t newfract;
 int readFract = 0; //Stock le nombre de fractales lues
 pthread_mutex_t finished;
@@ -87,11 +87,32 @@ void initThird() {
 		fprintf(stderr, "ERREUR pthread_mutex_init (finished)\n");
 }
 
+void lectureSTDin() {
+	FILE* std = NULL;
+	std = fopen("stdin.txt", "w"); //Créons un fichier tampon où stocker les entrées au clavier (w efface l'éventuel contenu, pour s'assurer qu'il est vide au départ)
+	int stop = 0;
+	while (stop != 1) {
+		char saisie[50];
+		printf("Entrez une fractale (Nom hauteur largeur a b) : \n");
+		fgets (saisie, sizeof(saisie), stdin);
+		fputs(saisie, std);
+		printf("Voulez-vous entrer une autre fractale ? (o/n)\n");
+		char rep[10];
+		fgets(rep, sizeof(rep), stdin);
+		rep[strlen(rep)-1] = '\0'; //Enlève le retour à la ligne
+		int res = strcmp(rep, "n");
+		if (res == 0)
+			stop = 1; //Fin de lecture
+	}
+	fclose(std);
+}
+
 /*
  * Fonction principale du programme
  */
 int main(int argc, char const *argv[]) {
-	printf("Bonjour et bienvenue dans ce programme de création de fracatles\n");//Bonjour
+	printf("Bonjour et bienvenue dans ce programme de création de fracatles\n"); //Bonjour
+
 	/*   Lecture des arguments   */
 	if (argc < 3) { //Il faut au moins 3 arguments (le nom de base, un fichier d'entrée et un de sortie)
 		fprintf(stderr, "Il n'y a pas assez d'arguments donnés, vous devez au moins donner un fichier contenant les fractales et un fichier de sortie!\n");
@@ -106,7 +127,7 @@ int main(int argc, char const *argv[]) {
 		flagDetail = 0;
 	}
 	arg = argv[nbrArg];
-	if (strcmp(arg, "--maxthreads") == 0) {//Chercher maxthreads
+	if (strcmp(arg, "--maxthreads") == 0) { //Chercher maxthreads
 		nbrArg++; //On va un argument plus loin pour trouver le nombre
 		int nbr = atoi(argv[nbrArg]); //Récupérer le nombre
 		maxThreads = nbr; //Le stocker
@@ -132,40 +153,17 @@ int main(int argc, char const *argv[]) {
 	pthread_t threadP[argc-nbrArg-1]; //Stockage des threads de production
 	int nthreadP = 0; //Nombre de threads de production
 	while (nbrArg < argc-1) { //Tant qu'on a des arguments à lire (ici, ce sont des fichiers + s'arrêter un avant la fin pour l'output)
-		pthread_mutex_lock(&files);
-		remainingFiles++; //Un fichier de plus à lire
-		pthread_mutex_unlock(&files);
 		char const *fichier = argv[nbrArg];
-		if (strcmp(fichier, "-") == 0) { //S'il faut lire l'entrée standart
-			FILE* std = NULL;
-			std = fopen("stdin.txt", "w"); //Créons un fichier tampon où stocker les entrées au clavier (w efface l'éventuel contenu, pour s'assurer qu'il est vide au départ)
-			int stop = 0;
-			while (stop != 1) {
-				char saisie[50];
-				printf("Entrez une fractale (Nom hauteur largeur a b) : \n");
-				fgets (saisie, sizeof(saisie), stdin);
-				fputs(saisie, std);
-				printf("Voulez-vous entrer une autre fractale ? (o/n)\n");
-				char rep[10];
-				fgets(rep, sizeof(rep), stdin);
-				rep[strlen(rep)-1] = '\0'; //Enlève le retour à la ligne
-				int res = strcmp(rep, "n");
-				if (res == 0)
-					stop = 1; //Fin de lecture
-			}
-			fclose(std);
-		}
+		if (strcmp(fichier, "-") == 0) //S'il faut lire l'entrée standart
+			lectureSTDin();
 		pthread_t th = NULL;
 		threadP[nthreadP] = th;
 		int res = pthread_create(&threadP[nthreadP], NULL, *producer, (void *) fichier); //Création d'un producteur
-		nthreadP++;
 		if (res != 0)
 			fprintf(stderr, "Problème à la création d'un producteur pour le fichier %s\n", fichier);
+		nthreadP++;
 		nbrArg++;
 	}
-
-	/*   Attendre pour que les fichiers commencent à se lire   */
-	sleep(1);
 
 	/*   Lancement des consommateurs   */
 	for(int i = 0; i < maxThreads; i++){
@@ -182,12 +180,12 @@ int main(int argc, char const *argv[]) {
 		fprintf(stderr, "Problème à la création du thread de moyenne\n");
 
 	/*   Jointure des threads de production, fichier lu entièrement   */
-	for (int i = 0; i < nthreadP; i++){
+	for (int i = 0; i < nthreadP; i++)
 		pthread_join(threadP[i], NULL);
-		pthread_mutex_lock(&files);
-		remainingFiles--; //Un fichier est terminé
-		pthread_mutex_unlock(&files);
-	}
+
+	pthread_mutex_lock(&files);
+	flagFiles = 1; //Les fichiers sont tous lus
+	pthread_mutex_unlock(&files);
 
 	/*   Jointure du thread de moyenne   */
 	void * ret = NULL;
@@ -202,5 +200,5 @@ int main(int argc, char const *argv[]) {
 	printf("Fichier %s écrit avec : %s\n", argv[nbrArg], fractal_get_name(bestAv));
 	remove(fractal_get_name(bestAv)); //Supression du fichier doublon
 	fractal_free(bestAv);
-	return 0;
+	return EXIT_SUCCESS;
 }

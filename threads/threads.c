@@ -20,7 +20,7 @@ extern node * buffer2;
 extern int flagDetail;
 
 extern pthread_mutex_t files;
-extern int remainingFiles;
+extern int flagFiles;
 
 extern pthread_mutex_t newfract;
 extern int readFract;
@@ -148,7 +148,7 @@ void * average() {
 	pthread_mutex_lock(&files);
 	pthread_mutex_lock(&newfract);
 	pthread_mutex_lock(&finished);
-	int nfile = remainingFiles;
+	int flag = flagFiles;
 	int nread = readFract;
 	int nfinished = finishedFract;
 	pthread_mutex_unlock(&files);
@@ -156,7 +156,7 @@ void * average() {
 	pthread_mutex_unlock(&finished);
 
 	struct fractal *bestAv = fractal_new("empty", 1, 1, 0.0, 0.0); //Variable où stocker la meilleure fractale
-	while (nfile != 0 || nread != nfinished) { //Tant qu'il y a des fichiers à lire ou que le nombre de fractales créées est différent du nombre de fracales terminées
+	while (!flag || nread != nfinished) { //Tant qu'il y a des fichiers à lire ou que le nombre de fractales créées est différent du nombre de fracales terminées
 		sem_wait(&full2); //On attend qu'il y ait quelque chose dans le buffer
 		pthread_mutex_lock(&mutex2); //On lock
 		struct fractal *test = stack_pop(&buffer2); //On prend la fractale;
@@ -174,7 +174,7 @@ void * average() {
 		pthread_mutex_lock(&newfract);
 		pthread_mutex_lock(&finished);
 		finishedFract++; //Une fracatle supplémentaire est terminée
-		nfile = remainingFiles;
+		flag = flagFiles;
 		nread = readFract;
 		nfinished = finishedFract;
 		pthread_mutex_unlock(&files);
