@@ -37,35 +37,56 @@ extern int finishedFract;
  */
 struct fractal* compute(char* str) {
 	const char *delim = " ";
-	char* name = strsep(&str, delim);
-	if (str == NULL) { //Si à ce point str vaut NULL, c'est que la chaine ne contenait que le nom
+	char* name = strtok(str, delim);
+	if (name == NULL) { //Il n'y a pas de nom
 		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
 		return NULL;
 	}
 
-	int width = atoi(strsep(&str, delim));
-	if (str == NULL || width <= 0) { //Il manque des arguments ou la longueur est invalide
+	char* token = strtok(NULL, delim);
+	if (token == NULL) { //Il n'y a pas de longueur
+		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
+		return NULL;
+	}
+	int width = atoi(token);
+	if (width <= 0) { //la longueur est invalide
 		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
 		return NULL;
 	}
 
-	int height = atoi(strsep(&str, delim));
-	if (str == NULL || height <= 0) { //Il manque des arguments ou la hauteur est invalide
+	token = strtok(NULL, delim);
+	if (token == NULL) { //Il n'y a pas de hauteur
+		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
+		return NULL;
+	}
+	int height = atoi(token);
+	if (height <= 0) { //la hauteur est invalide
 		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
 		return NULL;
 	}
 
-	double a = strtod(strsep(&str, delim), NULL);
-	if (str == NULL || a > 1.0 || a < -1.0) { //Il manque un argument ou a n'est pas dans les bonnes bornes
+	token = strtok(NULL, delim);
+	if (token == NULL) { //Il n'y a pas de valeur a
+		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
+		return NULL;
+	}
+	double a = strtod(token, NULL);
+	if (a > 1.0 || a < -1.0) { //a n'est pas dans les bonnes bornes
 		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
 		return NULL;
 	}
 
-	double b = strtod(str, NULL);
+	token = strtok(NULL, delim);
+	if (token == NULL) { //Il n'y a pas de valeur b
+		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
+		return NULL;
+	}
+	double b = strtod(token, NULL);
 	if (b > 1.0 || b <- 1.0) { //b n'est pas dans les bonnes bornes
 		fprintf(stderr, "Erreur, la fractale : %s n'est pas formatée correctement. Elle a été ignorée", str);
 		return NULL;
 	}
+
 	struct fractal *result = fractal_new(name, width, height, a, b); //crée la fractale
 	pthread_mutex_lock(&newfract);
 	readFract++; //Une fractale supplémentaire a été créée
