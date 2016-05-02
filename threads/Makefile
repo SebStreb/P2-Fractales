@@ -1,6 +1,6 @@
 CC = gcc
 AR = ar
-CFLAGS = -g -Wall -W
+CFLAGS = -g -Wall -W -std=c99
 LDFLAGS =
 SRC = threads.c
 OBJ = $(SRC:.c=.o)

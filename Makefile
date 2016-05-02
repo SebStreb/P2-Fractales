@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall -W -I$(HOME)/local/include
+CFLAGS = -g -Wall -W -I$(HOME)/local/include -std=c99
 LDFLAGS = -lm -L/usr/local/lib -L$(HOME)/local/lib -lSDL -lcunit -pthread
 LIBRAIRIES = libfractal/libfractal.a stack/libstack.a threads/libthread.a
 all: fractal
