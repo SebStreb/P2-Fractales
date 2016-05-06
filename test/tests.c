@@ -70,24 +70,26 @@ void testFractalesAverage(void) {
 	fractal_free(test);
 }
 
-void testStackSize(void){
-	node * stackTest = malloc(sizeof(node));
-	int base = 0;
-	CU_ASSERT_EQUAL(base, stack_length(stackTest));
-	struct fractal * fill = fractal_new("Nom", 10, 10, 1, 0.6);
-	int plus = 1;
-	stack_push(&stackTest, fill);
-	CU_ASSERT_EQUAL(plus, stack_length(stackTest));
-	fractal_free(fill);
-	free(stackTest);
-}
-
-void testStackPushPop(void){
+void testStackPushPop1(void){
 	node * stackTest = malloc(sizeof(node));
 	struct fractal * fill = fractal_new("Nom", 10, 10, 1, 0.6);
 	stack_push(&stackTest, fill);
 	struct fractal * same = stack_pop(&stackTest);
 	CU_ASSERT_EQUAL(fill, same);
+	fractal_free(fill);
+	free(stackTest);
+}
+
+void testStackPushPop2(void){
+	node * stackTest = malloc(sizeof(node));
+	struct fractal * fill = fractal_new("Nom", 10, 10, 1, 0.6);
+	stack_push(&stackTest, fill);
+	struct fractal * same = stack_pop(&stackTest);
+	CU_ASSERT_EQUAL(fractal_get_name(fill), fractal_get_name(same));
+	CU_ASSERT_EQUAL(fractal_get_height(fill), fractal_get_height(same));
+	CU_ASSERT_EQUAL(fractal_get_width(fill), fractal_get_width(same));
+	CU_ASSERT_EQUAL(fractal_get_a(fill), fractal_get_a(same));
+	CU_ASSERT_EQUAL(fractal_get_b(fill), fractal_get_b(same));
 	fractal_free(fill);
 	free(stackTest);
 }
@@ -118,8 +120,8 @@ int main(int argc, char const *argv[]) {
 		NULL == CU_add_test(pSuite, "test de la librairie fractale, taille", testFractalesSize) ||
 		NULL == CU_add_test(pSuite, "test de la librairie fractale, a et b", testFractalesAB) ||
 		NULL == CU_add_test(pSuite, "test de la librairie fractale, moyenne", testFractalesAverage) ||
-		NULL == CU_add_test(pSuite, "test de la librairie stack, taille", testStackSize) ||
-		NULL == CU_add_test(pSuite, "test de la librairie stack, push et pop", testStackSize)
+		NULL == CU_add_test(pSuite, "test de la librairie stack, push et pop 1", testStackPushPop1) ||
+		NULL == CU_add_test(pSuite, "test de la librairie stack, push et pop 2", testStackPushPop2)
 	) {
 		CU_cleanup_registry();
 		return CU_get_error();
