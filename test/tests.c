@@ -70,7 +70,7 @@ void testStackSize(void){
 	CU_ASSERT_EQUAL(base, stack_length(stackTest));
 	struct fractal * fill = fractal_new("Nom", 10, 10, 1, 0.6);
 	int plus = 1;
-	stack_push(stackTest, fill);
+	stack_push(&stackTest, fill);
 	CU_ASSERT_EQUAL(plus, stack_length(stackTest));
 }
 
@@ -110,12 +110,12 @@ int main(int argc, char const *argv[]) {
 		NULL == CU_add_test(pSuite, "test de la librairie fractale, moyenne", testFractalesAverage) ||
 		NULL == CU_add_test(pSuite, "test de la librairie stack, taille", testStackSize) ||
 		NULL == CU_add_test(pSuite, "test de la librairie stack, push et pop", testStackSize)
-	) {
+	)) {
 		CU_cleanup_registry();
 		return CU_get_error();
 	}
 
-	CU_basic_set_mode(CU_BRM_VERBOSE);
+	//CU_basic_set_mode(CU_BRM_VERBOSE);
 	CU_basic_run_tests();
 	CU_basic_show_failures(CU_get_failure_list());
 	CU_cleanup_registry();
