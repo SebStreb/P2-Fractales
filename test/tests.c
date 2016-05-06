@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <CUnit/basic.h>
+#include <CUnit/Basic.h>
 #include "../libfractal/fractal.h"
 #include "../stack/stack.h"
 
